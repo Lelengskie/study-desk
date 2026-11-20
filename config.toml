@@ -1,0 +1,4 @@
+project_id = "cse-reviewer"
+
+[functions.tutor]
+verify_jwt = true
