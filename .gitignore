@@ -1,0 +1,16 @@
+# Private files and credentials
+.env
+.env.*
+!.env.example
+.private/
+*.pem
+*.key
+
+# Dependencies and generated files
+node_modules/
+dist/
+coverage/
+
+# Local settings
+.DS_Store
+*.log
