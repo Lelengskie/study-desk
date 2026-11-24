@@ -214,7 +214,7 @@ progress { display: block; width: 100%; height: .55rem; accent-color: var(--acce
     gap: .75rem;
     padding: .8rem 1rem;
   }
-  .sidebar nav { grid-column: 1 / -1; grid-row: 2; margin: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .25rem; }
+  .sidebar nav { grid-column: 1 / -1; grid-row: 2; margin: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .25rem; }
   .sidebar nav button { font-size: .875rem; flex-wrap: wrap; justify-content: center; gap: .25rem; padding: .4rem .2rem; }
   .sidebar nav button span { font-size: 1rem; }
   .account { border: 0; padding: 0; }
@@ -231,3 +231,22 @@ progress { display: block; width: 100%; height: .55rem; accent-color: var(--acce
   .mark { flex-basis: 100%; padding-left: 2.45rem; }
   .nav-count { margin-left: 0; }
 }
+.hybrid-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
+  gap: 12px;
+  align-items: end;
+  padding: 16px;
+}
+.hybrid-filters label, .hybrid-report label { display: grid; gap: 4px; }
+.hybrid-filters input, .hybrid-filters select, .hybrid-report input { width: 100%; min-width: 0; }
+.hybrid-results { display: grid; gap: 12px; margin-block: 16px; }
+.hybrid-card, .hybrid-practice-card { padding: 16px; overflow-wrap: anywhere; }
+.hybrid-card h2, .hybrid-practice-card h2 { font-size: 1.1rem; }
+.hybrid-card summary { cursor: pointer; }
+.hybrid-card summary small { display: block; margin-top: 4px; }
+.hybrid-actions { margin-block: 12px; flex-wrap: wrap; }
+.hybrid-actions input[type="number"] { width: 5rem; }
+.hybrid-options { min-width: 0; }
+.hybrid-options label { display: block; margin-block: 6px; }
+.hybrid-report { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }

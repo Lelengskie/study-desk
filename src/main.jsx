@@ -2,13 +2,16 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { client, rpc, tutor } from './api'
+import Hybrid from './Hybrid'
 import './style.css'
 
 const stages = [
   { id: 'learn', title: 'Learn', icon: '▤' },
   { id: 'quiz', title: 'Quiz', icon: '◈' },
   { id: 'master', title: 'Master', icon: '◉' },
-  { id: 'repeat', title: 'Repeat', icon: '↻' }
+  { id: 'repeat', title: 'Repeat', icon: '↻' },
+  { id: 'library', title: 'Library', icon: '▥' },
+  { id: 'practice', title: 'Practice', icon: '◇' }
 ]
 const labels = { professional: 'Professional', subprofessional: 'Subprofessional' }
 const emptyProgress = { completed: [], mastery: {}, reviews: [] }
@@ -323,7 +326,7 @@ function Desk({ email }) {
             <button className="primary" onClick={() => { setTab('quiz'); start(detail.quiz_ids, 'quiz', detail.title) }}>Start quiz</button>
           </div>
         </article>
-      </> : <>
+      </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track} library={tab === 'library'} track={track} modules={catalog} /> : <>
         <header className="page-head"><h1>{page[0]}</h1><p>{page[1]}</p></header>
         {tab === 'learn' && <div className="summary" aria-label="Study summary">
           <div><strong>{completed}<span> / {modules.length}</span></strong><small>Lessons complete</small></div>

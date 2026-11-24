@@ -1,21 +1,23 @@
 
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright'
-import { createServer } from 'vite'
+import { build, preview } from 'vite'
 
 const fakeUrl = 'https://reviewer-test.supabase.co'
 process.env.VITE_SUPABASE_URL = fakeUrl
 process.env.VITE_SUPABASE_PUBLISHABLE_KEY = 'test-publishable-key'
-const server = await createServer({
-  server: { host: '127.0.0.1', port: 5317, strictPort: true }
+const buildOptions = { outDir: 'node_modules/.cache/study-browser', emptyOutDir: true }
+await build({ build: buildOptions, logLevel: 'error' })
+const server = await preview({
+  build: buildOptions, preview: { host: '127.0.0.1', port: 5317, strictPort: true }, logLevel: 'error'
 })
-await server.listen()
 let browser
 try {
   browser = await chromium.launch(process.env.REVIEWER_CHROME
     ? { executablePath: process.env.REVIEWER_CHROME }
     : {})
-  const page = await browser.newPage({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true })
+  const desktop = process.argv.includes('--desktop')
+  const page = await browser.newPage({ viewport: { width: desktop ? 1440 : 375, height: 812 }, isMobile: !desktop, hasTouch: !desktop })
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
   const quizOptions = [{ id: '1', text: 'Twelve' }, { id: '2', text: 'Five' }]
@@ -37,6 +39,8 @@ try {
   let gradeCalls = 0
   let tutorCalls = 0
   let tutorGrades = 0
+  const unscored = { id: 'a'.repeat(64), stem: 'Which option is the source value?', status: 'source_answer_available',
+    options: [{ label: 'A', text: 'Sample option' }, { label: 'B', text: 'Other option' }], saved: false }
   await page.route(fakeUrl + '/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     const method = route.request().method()
@@ -52,6 +56,17 @@ try {
     if (path === '/auth/v1/logout') return route.fulfill({ status: 204, headers })
     assert.ok(route.request().headers().authorization?.includes(token), 'Protected request used a session token')
     if (path.endsWith('/study_catalog')) return send({ modules: [testModule] })
+    if (path.endsWith('/hybrid_library')) return send([{
+      id: 'fixture', title: 'Sample mock examination', format: 'pdf', role: 'mock exam',
+      editions: ['2027'], drive_file_id: 'fixture-only'
+    }])
+    if (path.endsWith('/hybrid_practice')) {
+      const count = route.request().postDataJSON()?.random_count
+      if (count !== undefined) assert.equal(count, 3)
+      return send([unscored])
+    }
+    if (path.endsWith('/hybrid_answer')) return send({ answer: 'A', status: unscored.status })
+    if (path.endsWith('/hybrid_feedback')) return send(null)
     if (path.endsWith('/study_progress')) return send({
       completed,
       mastery: gradeCalls ? { math: { attempts: gradeCalls, correct: 1, distinct_items: 1, sessions: 1, mastered: false } } : {},
@@ -86,6 +101,9 @@ try {
     return send({ error: 'Unexpected mock request for ' + path }, 404)
   })
   await page.goto('http://127.0.0.1:5317')
+  await page.getByRole('heading', { name: 'Make time to study.' }).waitFor({ timeout: 5000 }).catch(async error => {
+    throw Error('Fixture did not load: ' + (await page.locator('body').innerText()) + ' ' + errors.join('; '), { cause: error })
+  })
   await page.getByLabel('Email').fill(user.email)
   await page.getByLabel('Password').fill('test-password')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
@@ -95,7 +113,27 @@ try {
   await page.getByRole('button', { name: 'Lesson complete' }).waitFor()
   await page.getByRole('button', { name: 'Start quiz', exact: true }).click()
   await page.getByRole('heading', { name: 'What comes after 3, 6, 9?' }).waitFor()
-  assert.equal(await page.getByRole('button', { name: 'Check answer' }).isDisabled(), true)
+  await page.getByRole('button', { name: 'Library', exact: true }).click()
+  await page.getByRole('heading', { name: 'Sample mock examination' }).waitFor()
+  assert.match(await page.getByRole('link', { name: 'Open in Google Drive' }).getAttribute('href'), /drive.google.com/)
+  await page.getByLabel('Source', { exact: true }).fill('mock')
+  await page.getByRole('button', { name: 'Search', exact: true }).click()
+  await page.getByRole('button', { name: 'Practice', exact: true }).click()
+  await page.getByLabel('Questions per session').fill('3')
+  await page.getByRole('button', { name: 'Start random practice' }).click()
+  await page.getByText('Question 1 of 1').waitFor()
+  await page.getByLabel('Sample option', { exact: true }).check()
+  await page.getByRole('button', { name: 'Check answer availability' }).click()
+  await page.getByText('Answer: Sample option').waitFor()
+  await page.getByRole('button', { name: 'Bookmark', exact: true }).click()
+  await page.getByRole('button', { name: 'Remove bookmark' }).waitFor()
+  await page.getByLabel('Report a problem').fill('Synthetic feedback')
+  await page.getByRole('button', { name: 'Send report' }).click()
+  await page.getByText('Report saved.').waitFor()
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
+  await page.getByRole('button', { name: 'Quiz', exact: true }).click()
+  await page.getByRole('button', { name: 'Start quiz: Number patterns' }).click()
+  assert.equal(await page.getByRole('button', { name: 'Check answer', exact: true }).isDisabled(), true)
   await page.getByText('Twelve', { exact: true }).click()
   await page.getByRole('button', { name: 'Check answer' }).click()
   await page.getByText('Add three to the last term.', { exact: true }).waitFor()
@@ -121,8 +159,8 @@ try {
   await page.getByRole('heading', { name: 'Make time to study.' }).waitFor()
   assert.deepEqual([gradeCalls, tutorCalls, tutorGrades], [1, 1, 1])
   assert.deepEqual(errors, [])
-  console.log('375 px browser flow passed: sign-in, lesson, quiz, explanation, tutor fallback, mastery, review and sign-out.')
+  console.log((desktop ? '1440' : '375') + ' px browser flow passed: verified study, library search, randomized unscored practice, bookmarks, reports, tutor fallback and sign-out.')
 } finally {
   await browser?.close()
-  await server.close()
+  await new Promise((resolve, reject) => server.httpServer.close(error => error ? reject(error) : resolve()))
 }

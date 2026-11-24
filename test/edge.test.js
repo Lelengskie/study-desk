@@ -19,6 +19,8 @@ test('Edge verifies tokens, hides practice keys, sends only skill text, and fall
   let roundErrors = false
   let user = { id: 'private-user-id', email: 'private-student@example.com' }
   let reservationCalls = 0
+  let hybrid = false
+  let cached = null
   const oldFetch = globalThis.fetch
   t.after(() => {
     delete globalThis.Deno
@@ -37,6 +39,19 @@ test('Edge verifies tokens, hides practice keys, sends only skill text, and fall
     assert.equal(key, 'test-service')
     return {
       rpc: async (name, args) => {
+        if (hybrid) {
+          if (name === 'hybrid_tutor_prepare') {
+            assert.equal(args.learner, user.id)
+            assert.equal(args.question, 'a'.repeat(64))
+            assert.deepEqual([args.user_cap, args.project_cap], [5, 12])
+            return { data: cached ? { status: 'ai', explanation: cached }
+              : { status: 'ready', stem: 'Local practice fixture?', options: [{ label: 'A', text: 'Example' }], revision: 'fixture' } }
+          }
+          assert.equal(name, 'hybrid_tutor_cache')
+          assert.equal(args.revision, 'fixture')
+          cached = args.explanation
+          return { data: null }
+        }
         assert.equal(args.p_user, user.id)
         assert.equal(args.p_question, 'arithmetic-06')
         if (name === 'tutor_open') {
@@ -55,7 +70,7 @@ test('Edge verifies tokens, hides practice keys, sends only skill text, and fall
     providerCalls += 1
     assert.match(url, /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/models\/gemini-/)
     assert.equal(request.headers['x-goog-api-key'], 'test-gemini')
-    assert.match(request.body, /Multiply two negative integers/)
+    assert.match(request.body, hybrid ? /Local practice fixture/ : /Multiply two negative integers/)
     for (const privateValue of [user.id, user.email, 'private-round', 'arithmetic-06', 'student input', '98']) {
       assert.equal(request.body.includes(privateValue), false)
     }
@@ -101,4 +116,16 @@ test('Edge verifies tokens, hides practice keys, sends only skill text, and fall
   env.delete('GEMINI_API_KEY')
   assert.equal((await (await invoke(true)).json()).status, 'not_configured')
   assert.equal(providerCalls, 2)
+  hybrid = true
+  providerStatus = 200
+  env.set('GEMINI_API_KEY', 'test-gemini')
+  const invokeHybrid = () => handle(new Request('https://tutor.invalid', {
+    method: 'POST',
+    headers: { Origin: 'https://reviewer.example.com', Authorization: 'Bearer test-session' },
+    body: JSON.stringify({ question_id: 'a'.repeat(64), use_ai: true, mode: 'hybrid' })
+  }))
+  const hybridResult = await (await invokeHybrid()).json()
+  assert.equal(hybridResult.status, 'ai')
+  assert.deepEqual(await (await invokeHybrid()).json(), hybridResult)
+  assert.equal(providerCalls, 3)
 })
