@@ -206,6 +206,8 @@ function QuestionFlow({ ids, mode, title, finish, refresh }) {
 }
 
 function Desk({ email }) {
+  const [practiceTopic, setPracticeTopic] = useState('')
+  const [topicCounts, setTopicCounts] = useState({})
   const [catalog, setCatalog] = useState(null)
   const [progress, setProgress] = useState(emptyProgress)
   const [track, setTrack] = useState(() => localStorage.getItem('reviewer-track') === 'subprofessional' ? 'subprofessional' : 'professional')
@@ -243,6 +245,7 @@ function Desk({ email }) {
   }, [catalog])
 
   function navigate(stage) {
+    setPracticeTopic('')
     setTab(stage)
     setDetail(null)
     setFlow(null)
@@ -250,6 +253,15 @@ function Desk({ email }) {
     window.scrollTo(0, 0)
     void refresh()
   }
+
+  useEffect(() => {
+    let active = true
+    setTopicCounts({})
+    rpc('hybrid_topic_counts', { exam_level: track }).then(rows => {
+      if (active) setTopicCounts(Object.fromEntries(rows.map(row => [row.topic, row])))
+    }).catch(() => {})
+    return () => { active = false }
+  }, [track])
 
   async function refresh() {
     const request = ++progressRequest.current
@@ -324,9 +336,14 @@ function Desk({ email }) {
               {progress.completed.includes(detail.id) ? 'Lesson complete' : busy ? 'Saving…' : 'Mark lesson complete'}
             </button>
             <button className="primary" onClick={() => { setTab('quiz'); start(detail.quiz_ids, 'quiz', detail.title) }}>Start quiz</button>
+            <button className="secondary" onClick={() => {
+              const topic = detail.id
+              navigate('practice')
+              setPracticeTopic(topic)
+            }}>Practice this topic</button>
           </div>
         </article>
-      </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track} library={tab === 'library'} track={track} modules={catalog} /> : <>
+      </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track + practiceTopic} library={tab === 'library'} track={track} modules={catalog} initialTopic={practiceTopic} /> : <>
         <header className="page-head"><h1>{page[0]}</h1><p>{page[1]}</p></header>
         {tab === 'learn' && <div className="summary" aria-label="Study summary">
           <div><strong>{completed}<span> / {modules.length}</span></strong><small>Lessons complete</small></div>
@@ -346,7 +363,8 @@ function Desk({ email }) {
                   <p>{accuracy === null ? 'No quiz attempts yet' : accuracy + '% · ' + stat.correct + ' of ' + stat.attempts + ' correct'}</p>
                   {accuracy !== null && <progress value={accuracy} max="100" aria-label={module.title + ' accuracy'} />}
                   <small>{stat?.mastered ? 'Mastered' : stat ? stat.distinct_items + ' distinct questions · ' + stat.sessions + ' sessions' : 'Try a topic quiz to start'}</small>
-                </> : <p>{tab === 'learn' && done ? 'Lesson complete' : module.quiz_ids.length + ' practice questions'}</p>}
+                </> : tab === 'learn' ? <p>{topicCounts[module.id]?.answer_ready ?? module.quiz_ids.length} answer-ready · {module.quiz_ids.length} verified{done ? ' · Lesson complete' : ''}</p>
+                  : <p>{module.quiz_ids.length} verified questions</p>}
               </div>
               {tab !== 'master' && <button className="secondary" aria-label={(tab === 'learn' ? 'Open lesson: ' : 'Start quiz: ') + module.title} onClick={() => {
                 if (tab === 'learn') { setDetail(module); window.scrollTo(0, 0) }

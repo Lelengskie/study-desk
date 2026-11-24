@@ -8,8 +8,8 @@ const statuses = {
   conflicting_answer: 'Conflicting answers · under review'
 }
 
-export default function Hybrid({ library, track, modules }) {
-  const [filters, setFilters] = useState({ q: '', subject: '', topic: '', source: '', status: '', level: track })
+export default function Hybrid({ library, track, modules, initialTopic = '' }) {
+  const [filters, setFilters] = useState({ q: '', subject: '', topic: initialTopic, source: '', status: '', level: track })
   const [query, setQuery] = useState(filters)
   const [page, setPage] = useState({ rows: [], after: '', previous: [] })
   const [count, setCount] = useState(10)
@@ -133,6 +133,7 @@ export default function Hybrid({ library, track, modules }) {
 
 function PracticeCard({ item, updateSaved }) {
   const [choice, setChoice] = useState('')
+  const [submitted, setSubmitted] = useState('')
   const [answer, setAnswer] = useState(null)
   const [ai, setAi] = useState(null)
   const [report, setReport] = useState('')
@@ -155,9 +156,11 @@ function PracticeCard({ item, updateSaved }) {
           onChange={() => setChoice(option.id ?? option.label)} /> {option.text}
       </label>)}</fieldset>
     <div className="actions hybrid-actions">
-      <button className="secondary" disabled={!choice || busy} onClick={() => act(async () => setAnswer(
-        await rpc('hybrid_answer', { question_id: item.id })
-      ))}>Check answer availability</button>
+      <button className="secondary" disabled={!choice || busy} onClick={() => act(async () => {
+        const result = await rpc('hybrid_answer', { question_id: item.id })
+        setSubmitted(choice)
+        setAnswer(result)
+      })}>Check answer availability</button>
       <button className="quiet" disabled={busy} onClick={() => act(async () => {
         await rpc('hybrid_feedback', { question_id: item.id, bookmark: !item.saved })
         updateSaved(item.id, !item.saved)
@@ -170,9 +173,14 @@ function PracticeCard({ item, updateSaved }) {
         setAi(data)
       })}>Request AI explanation</button>}
     </div>
-    {answer && <p role="status">{answer.answer ? 'Answer: ' +
+    {answer && <div role="status">
+      {answer.answer && <p>{submitted === answer.answer ? 'Correct' : 'Incorrect'} · Your answer: {
+        item.options.find(option => (option.id ?? option.label) === submitted)?.text ?? submitted
+      }</p>}
+      <p>{answer.answer ? 'Answer: ' +
       (item.options.find(option => (option.id ?? option.label) === answer.answer)?.text ?? answer.answer)
-      : statuses[answer.status]}{answer.explanation && ' · ' + answer.explanation}</p>}
+      : statuses[answer.status]}{answer.explanation && ' · ' + answer.explanation}</p>
+    </div>}
     {ai && <p role="status">{ai.explanation ? 'AI-generated suggestion · ' + ai.explanation : 'AI explanation unavailable.'}</p>}
     <form className="hybrid-report" onSubmit={event => {
       event.preventDefault()
