@@ -81,7 +81,8 @@ export default function Hybrid({ library, track, modules, initialTopic = '' }) {
         <option value="subprofessional">Subprofessional</option></select></label>
       {library ? <label>Source <input value={filters.source} maxLength={200} onChange={event => change('source', event.target.value)} /></label> :
         <label>Answer status <select value={filters.status} onChange={event => change('status', event.target.value)}>
-          <option value="">All statuses</option>{Object.entries(statuses).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          <option value="">All answer-ready questions</option>
+          {['independently_verified', 'source_answer_available'].map(key => <option key={key} value={key}>{statuses[key]}</option>)}
         </select></label>}
       <button className="primary" type="submit">Search</button>
     </form>
