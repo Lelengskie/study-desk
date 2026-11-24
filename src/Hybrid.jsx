@@ -113,7 +113,8 @@ export default function Hybrid({ library, track, modules }) {
         <h2>{item.title}</h2>
         <p>{[item.role?.replaceAll('_', ' ') || 'Reviewer material', item.format.toUpperCase(), item.subject, ...item.editions].filter(Boolean).join(' · ')}</p>
         <a href={'https://drive.google.com/open?id=' + encodeURIComponent(item.drive_file_id)}
-          target="_blank" rel="noopener noreferrer">Open in Google Drive</a>
+          target="_blank" rel="noopener noreferrer">{item.role?.includes('archive download')
+            ? 'Open source ZIP in Drive' : 'Open in Google Drive'}</a>
       </article> : <details className="surface hybrid-card" key={item.id}>
         <summary>{item.stem} <small>{statuses[item.status]}</small></summary>
         <PracticeCard item={item} updateSaved={updateSaved} />
