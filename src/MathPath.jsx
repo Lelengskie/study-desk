@@ -18,8 +18,12 @@ const misconceptionPrompts = {
   possible_double_counting: 'Did you count readers in both groups twice? Place those readers in the overlap first.',
 }
 
-export default function MathPath({ initialConcept = 'signed', openImported }) {
-  const [concept, choose] = useState(initialConcept)
+export default function MathPath({ initialConcept = 'signed', openImported, onConceptChange }) {
+  const [concept, setConcept] = useState(initialConcept)
+  function choose(id) {
+    setConcept(id)
+    onConceptChange?.()
+  }
   const [rows, setRows] = useState([])
   const [sync, setSync] = useState('loading')
   const refresh = useCallback(async () => {
@@ -62,6 +66,7 @@ export default function MathPath({ initialConcept = 'signed', openImported }) {
       {state.unused.length === 0 && <p>All tracked variations have been tried. You can revisit them for practice.</p>}
     </>}
     <h3>{entry.title}</h3>
+    <p>{lastSeed-firstSeed+1} generated practice variations</p>
     <FoundationGuide key={concept} concept={concept} />
     <details key={concept} className="concept-worked">
       <summary>Understand the concept with a worked example</summary>
@@ -73,7 +78,7 @@ export default function MathPath({ initialConcept = 'signed', openImported }) {
     {sync !== 'loading' && <Variation key={concept} concept={concept} entry={entry} state={state}
       sync={sync} refresh={refresh} />}
     <div className="actions">
-      {openImported && <button className="secondary" onClick={() => openImported(concept)}>Browse imported questions for this subject</button>}
+      {openImported && <button className="secondary" onClick={() => openImported(concept)}>Open imported practice</button>}
       {nextConcept && <button className="secondary" onClick={() => choose(nextConcept)}>
         Continue to {mathPath[nextConcept].title.toLowerCase()}</button>}
     </div>

@@ -12,6 +12,24 @@ const guides = {
   linear: ['A variable is a symbol for an unknown quantity. An equation states that both sides have the same value.', 'Apply the same operation to both sides to keep the equation balanced. Substitute the answer to check it.'],
 }
 
+const fractionSkills = [
+  ['Simplify a fraction', 'Divide both counts by the same factor. Each new piece represents a group of equal smaller pieces.', '6/8 = 3/4', 'Divide the numerator and denominator by 2. The share of the whole stays the same.'],
+  ['Add or subtract fractions', 'Rename the fractions so the pieces have the same size. Then add or subtract only the number of pieces.', '3/4 - 1/2 = 3/4 - 2/4 = 1/4', 'One half is two quarters, so taking away two of the three quarters leaves one quarter.'],
+  ['Multiply fractions', 'Read the multiplication sign as “of.” Half of three quarters is three pieces, each half a quarter.', '1/2 × 3/4 = 3/8', 'Each half-quarter is one eighth of the original whole. Three of them make three eighths.'],
+  ['Divide fractions', 'Ask how many groups of the divisor fit in the starting quantity.', '3/4 ÷ 1/8 = 6', 'Three quarters is six eighths, so six groups of one eighth fit.'],
+  ['Read a mixed number', 'The whole number counts complete wholes. The fraction adds some equal pieces of the next whole.', '2 1/3 = 7/3', 'Two wholes contain six thirds. Add one more third to get seven thirds.'],
+]
+
+function FractionSkills() {
+  return <div className="concept-worked">
+    <h4>Explore fraction skills</h4>
+    {fractionSkills.map(([title,meaning,example,reason]) => <details key={title}>
+      <summary>{title}</summary><p>{meaning}</p>
+      <p><MathText text={example} /></p><p>{reason}</p>
+    </details>)}
+  </div>
+}
+
 function FractionExplorer() {
   const [parts, setParts] = useState(4)
   const [shaded, setShaded] = useState(2)
@@ -39,6 +57,6 @@ export default function FoundationGuide({ concept }) {
   return <div className="concept-worked">
     <h4>Understand the concept</h4>
     {guide.map(line => <p key={line}>{line}</p>)}
-    {concept === 'fractions' && <FractionExplorer />}
+    {concept === 'fractions' && <><FractionExplorer /><FractionSkills /></>}
   </div>
 }

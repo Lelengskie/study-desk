@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { client, rpc, tutor } from './api'
 import Hybrid from './Hybrid'
+import { conceptLabel } from './concept-labels.mjs'
 import ConceptLab from './ConceptLab'
 import MathPath from './MathPath'
 import Journey from './Journey'
@@ -11,14 +12,24 @@ import { conceptState, dailyConcepts } from './concept-progress.mjs'
 import './style.css'
 
 const stages = [
-  { id: 'today', title: 'Study Today', icon: '☀' },
+  { id: 'today', title: 'Home', icon: '☀' },
   { id: 'learn', title: 'Learn', icon: '▤' },
-  { id: 'quiz', title: 'Quiz', icon: '◈' },
-  { id: 'master', title: 'My Progress', icon: '◉' },
-  { id: 'repeat', title: 'Review', icon: '↻' },
-  { id: 'library', title: 'Library', icon: '▥' },
-  { id: 'practice', title: 'Practice', icon: '◇' }
+  { id: 'tutor', title: 'AI Tutor', icon: '✦' },
+  { id: 'master', title: 'Progress', icon: '◉' },
+  { id: 'library', title: 'Library', icon: '▥' }
 ]
+const linkedConcepts = {
+  'word-meaning': ['synonyms','antonyms','context','filipino'],
+  grammar: ['grammar','sentence-completion'],
+  'reading-order': ['reading','paragraphs'],
+  'number-patterns': ['sequence'],
+  arithmetic: ['arithmetic','signed','order','fractions','decimals','percent','ratio','average','factors'],
+  'word-problems': ['linear','age','work','speed','discount','commission','interest'],
+  logic: ['analogies','assumptions','conclusions','letter-patterns','arrangement','syllogism','sufficiency'],
+  'data-interpretation': ['data-interpretation'],
+  clerical: ['filing'],
+  spelling: ['spelling'],
+}
 const labels = { professional: 'Professional', subprofessional: 'Subprofessional' }
 const emptyProgress = { completed: [], mastery: {}, reviews: [] }
 const dateLabel = (value) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
@@ -222,6 +233,7 @@ function Desk({ email, profileId }) {
   const [progress, setProgress] = useState(emptyProgress)
   const [track, setTrack] = useState(() => localStorage.getItem('reviewer-track') === 'subprofessional' ? 'subprofessional' : 'professional')
   const [tab, setTab] = useState('today')
+  const [embeddedPractice, setEmbeddedPractice] = useState(null)
   const [pathStart, setPathStart] = useState(null)
   const [conceptRows, setConceptRows] = useState([])
   const [detail, setDetail] = useState(null)
@@ -264,6 +276,7 @@ function Desk({ email, profileId }) {
   }, [catalog, tab, pathStart, detail])
 
   function navigate(stage) {
+    setEmbeddedPractice(null)
     setPathStart(null)
     setPracticeTopic('')
     setPracticeSubject('')
@@ -331,11 +344,10 @@ function Desk({ email, profileId }) {
   const conceptDue = Object.keys(states).filter(id => states[id].dueNow && states[id].unused.length)
   const weak = Object.keys(states).filter(id => states[id].weak)
   function openImported(subject, concept) {
-    navigate('practice')
-    setPracticeSubject(subject)
-    if (concept) setPracticeTopic('concept:' + concept)
+    setEmbeddedPractice({ subject, topic: concept ? 'concept:' + concept : '' })
   }
   function openLesson(module) {
+    setEmbeddedPractice(null)
     setDetail(module)
     window.scrollTo(0, 0)
   }
@@ -344,10 +356,13 @@ function Desk({ email, profileId }) {
     window.scrollTo(0, 0)
   }
   function openPath(id) {
+    if (tab === 'today' || tab === 'master') setTab('learn')
+    setEmbeddedPractice(null)
     setPathStart(id)
     window.scrollTo(0, 0)
   }
   const page = {
+    tutor: ['AI Tutor', 'Open a practice question to ask for a hint, a worked explanation, or a simpler explanation.'],
     today: ['Your study plan', 'Continue a guided lesson or complete a scheduled review.'],
     learn: ['Learn by subject', 'Follow a roadmap or choose the concept you want to understand.'],
     quiz: ['Practice by topic', 'Choose a topic and get a verified explanation after each answer.'],
@@ -355,11 +370,17 @@ function Desk({ email, profileId }) {
     repeat: ['Spaced review', 'Review guided concepts and verified questions when they are due.']
   }[tab]
 
+  const lessonConcepts = detail ? conceptCounts.filter(row => row.subject === detail.track
+    && linkedConcepts[detail.id]?.includes(row.concept)) : []
+  const importedPanel = embeddedPractice && <Hybrid key={track + embeddedPractice.subject + embeddedPractice.topic}
+    embedded track={track} modules={catalog} initialTopic={embeddedPractice.topic}
+    initialSubject={embeddedPractice.subject} conceptCounts={conceptCounts} />
+
   return <div className="desk">
     <aside className="sidebar">
       <Brand />
       <nav aria-label="Study stages">{stages.map(({ id, title, icon }) =>
-        <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => navigate(id)}>
+        <button key={id} aria-current={(tab === id || id === 'learn' && ['quiz','practice','repeat'].includes(tab)) ? 'page' : undefined} onClick={() => navigate(id)}>
           <span aria-hidden="true">{icon}</span>{title}{id === 'repeat' && due.length > 0 && <b className="nav-count">{due.length}</b>}
         </button>)}</nav>
       <div className="account"><p title={email}>{email}</p><button className="quiet" onClick={() => client.auth.signOut()}>Sign out</button></div>
@@ -375,41 +396,54 @@ function Desk({ email, profileId }) {
       </div>
       {error && <p role="alert" className="notice error">{error}</p>}
       {pathStart ? <>
-        <button className="quiet back" onClick={() => setPathStart(null)}>Back to {tab === 'repeat' ? 'reviews' : journeySubject || 'study plan'}</button>
+        <button className="quiet back" onClick={() => {setPathStart(null); setEmbeddedPractice(null)}}>Back to {tab === 'repeat' ? 'reviews' : journeySubject || 'Learn'}</button>
         <MathPath key={pathStart} initialConcept={pathStart} openImported={concept => {
           const hasNumericalSequence = concept === 'sequence' && conceptCounts.some(row => row.concept === concept && row.subject === 'Numerical Ability')
           const subject = analyticalConcepts.has(concept) && !hasNumericalSequence ? 'Analytical Ability' : 'Numerical Ability'
           openImported(subject, conceptCounts.some(row => row.subject === subject && row.concept === concept) ? concept : null)
-        }} />
+        }} onConceptChange={() => setEmbeddedPractice(null)} />
+        {importedPanel}
       </> : flow ? <>
         <button className="quiet back" onClick={() => { setFlow(null); setError('') }}>End session</button>
         <QuestionFlow key={flow.key} {...flow} finish={() => navigate('master')} refresh={refresh} />
       </> : detail ? <>
-        <button className="quiet back" onClick={() => { setDetail(null); setError('') }}>Back to lessons</button>
+        <button className="quiet back" onClick={() => { setDetail(null); setEmbeddedPractice(null); setError('') }}>Back to lessons</button>
         <article className="surface lesson"><div className="eyebrow">{detail.track}</div><h1>{detail.title}</h1>
           <p>{detail.lesson}</p>
+          <p>{Math.max(0,(topicCounts[detail.id]?.answer_ready ?? detail.quiz_ids.length)-(topicCounts[detail.id]?.verified ?? detail.quiz_ids.length))} linked imports · {detail.quiz_ids.length} verified assessment questions</p>
           <div className="actions">
             <button className="secondary" disabled={busy || progress.completed.includes(detail.id)} onClick={complete}>
               {progress.completed.includes(detail.id) ? 'Lesson complete' : busy ? 'Saving…' : 'Mark lesson complete'}
             </button>
-            <button className="primary" onClick={() => { setTab('quiz'); start(detail.quiz_ids, 'quiz', detail.title) }}>Start quiz</button>
-            <button className="secondary" onClick={() => {
-              const topic = detail.id
-              navigate('practice')
-              setPracticeTopic(topic)
-            }}>Practice this topic</button>
+            <button className="primary" onClick={() => start(detail.quiz_ids, 'quiz', detail.title)}>Start quiz</button>
+            <button className="secondary" onClick={() => setEmbeddedPractice({ subject: detail.track, topic: detail.id })}>Practice linked imports</button>
+            <button className="quiet" onClick={() => setEmbeddedPractice({ subject: detail.track, topic: '' })}>More practice in this subject</button>
           </div>
+          {lessonConcepts.length > 0 && <details className="concept-worked">
+            <summary>Practice an individual concept</summary>
+            <ul>{lessonConcepts.map(row => <li key={row.concept}>
+              <button className="quiet" onClick={() => openImported(row.subject,row.concept)}>
+                {conceptLabel(row.concept)} · {row.imported} imported
+              </button>
+            </li>)}</ul>
+          </details>}
         </article>
         <ConceptLab topic={detail.id} />
+        {importedPanel}
       </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track + practiceTopic + practiceSubject} library={tab === 'library'} track={track} modules={catalog} initialTopic={practiceTopic} initialSubject={practiceSubject} conceptCounts={conceptCounts} /> : <>
         <header className="page-head"><h1>{page[0]}</h1><p>{page[1]}</p></header>
+        {tab === 'learn' && !journeySubject && <div className="actions">
+          <button className="quiet" onClick={() => openImported('',null)}>Browse all practice</button>
+          {due.length + conceptDue.length > 0 && <button className="quiet" onClick={() => navigate('repeat')}>Review due</button>}
+        </div>}
+        {tab === 'tutor' && <button className="primary" onClick={() => openImported('',null)}>Choose an imported question</button>}
         {tab === 'today' && <section className="surface concept-lab">
           <h2>Study today</h2>
           <p>{conceptDue.length || due.length ? 'Start with a due review, then continue your learning pathway.'
             : 'Start with a short guided exercise. Use a hint whenever you need help.'}</p>
           <div className="actions">
             {recommendations.map((id, index) => <button className={index ? 'secondary' : 'primary'}
-              key={id} onClick={() => openPath(id)}>{states[id].dueNow ? 'Review' : 'Study'} {mathPath[id].title.toLowerCase()}</button>)}
+              key={id} onClick={() => openPath(id)}>{index === 0 ? 'Continue learning: ' : states[id].dueNow ? 'Review ' : 'Study '}{mathPath[id].title.toLowerCase()}</button>)}
             <button className="secondary" onClick={() => openPath('signed')}>Browse the learning pathway</button>
             {due.length > 0 && <button className="secondary" onClick={() => navigate('repeat')}>
               {due.length} verified {due.length === 1 ? 'review' : 'reviews'} due
@@ -433,6 +467,7 @@ function Desk({ email, profileId }) {
           attempts={conceptRows} topicCounts={topicCounts} subjectCounts={subjectCounts} conceptCounts={conceptCounts} states={states} recommendations={recommendations} subject={journeySubject}
           chooseSubject={chooseJourneySubject} openLearn={() => navigate('learn')} openLesson={openLesson} openPath={openPath}
           openQuiz={() => navigate('quiz')} openPractice={openImported} />}
+        {importedPanel}
         {!modules.length && <div className="surface empty"><h2>Study content is waiting to be imported</h2><p>Ask the study desk owner to finish the private import.</p></div>}
         {['quiz', 'master'].includes(tab) && groups.map(group => <section className="topic-group" key={group}>
           <h2>{group}</h2>

@@ -12,7 +12,7 @@ const statuses = {
   conflicting_answer: 'Conflicting answers · under review'
 }
 
-export default function Hybrid({ library, track, modules, initialTopic = '', initialSubject = '', conceptCounts = [] }) {
+export default function Hybrid({ library, track, modules, initialTopic = '', initialSubject = '', conceptCounts = [], embedded = false }) {
   const [filters, setFilters] = useState({ q: '', subject: initialSubject, topic: initialTopic, source: '', status: '', level: track })
   const [query, setQuery] = useState(filters)
   const [page, setPage] = useState({ rows: [], after: '', previous: [] })
@@ -21,6 +21,7 @@ export default function Hybrid({ library, track, modules, initialTopic = '', ini
   const [savedOnly, setSavedOnly] = useState(false)
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
+  const [filtersVisible, showFilters] = useState(false)
   const endpoint = library ? 'hybrid_library' : 'hybrid_practice'
   const parameters = {
     q: query.q, subject_filter: query.subject || null, topic_filter: query.topic || null,
@@ -69,9 +70,10 @@ export default function Hybrid({ library, track, modules, initialTopic = '', ini
   }
   const subjects = [...new Set(modules.map(module => module.track))]
   return <>
-    <header className="page-head"><h1>{library ? 'Reviewer Library' : 'Practice Pool'}</h1>
+    <header className="page-head">{embedded ? <h2>Imported practice</h2> : <h1>{library ? 'Reviewer Library' : 'Practice Pool'}</h1>}
       {!library && <p>Browse or start a randomized session. Practice here does not affect your scores or mastery.</p>}</header>
-    <form className="surface hybrid-filters" onSubmit={search}>
+    {embedded && <button type="button" className="quiet" aria-expanded={filtersVisible} onClick={() => showFilters(!filtersVisible)}>Practice filters</button>}
+    {(!embedded || filtersVisible) && <form className="surface hybrid-filters" onSubmit={search}>
       <label>Search <input value={filters.q} maxLength={200} onChange={event => change('q', event.target.value)} /></label>
       <label>Subject <select value={filters.subject} onChange={event => change('subject', event.target.value)}>
         <option value="">All subjects</option>{subjects.map(subject => <option key={subject}>{subject}</option>)}
@@ -91,7 +93,7 @@ export default function Hybrid({ library, track, modules, initialTopic = '', ini
           {['independently_verified', 'source_answer_available'].map(key => <option key={key} value={key}>{statuses[key]}</option>)}
         </select></label>}
       <button className="primary" type="submit">Search</button>
-    </form>
+    </form>}
     {!library && <div className="actions hybrid-actions">
       <label>Questions per session <input type="number" min="1" max="100" value={count}
         onChange={event => setCount(event.target.value === '' ? '' : Number(event.target.value))} /></label>

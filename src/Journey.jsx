@@ -114,8 +114,8 @@ export default function Journey({
       </header>
       {concepts.length > 0 && progression.map((stage, index) => {
         const entries = concepts.filter(id => Math.min(2, Math.floor(conceptDepth(id) / 3)) === index)
-        return entries.length > 0 && <section key={stage} className="journey-stage">
-          <h3>{stage}</h3>
+        return entries.length > 0 && <details key={stage} open={index === 0 || entries.includes(nextConcept)} className="journey-stage">
+          <summary><strong>{stage}</strong> · {entries.length} concepts</summary>
           <ol className="journey-steps">{entries.map(id => {
             const item = mathPath[id]
             const state = states[id]
@@ -127,7 +127,7 @@ export default function Journey({
               <button className="secondary" onClick={() => openPath(id)}>{state.dueNow ? 'Review' : 'Study'}<span className="sr-only"> {item.title}</span></button>
             </li>
           })}</ol>
-        </section>
+        </details>
       })}
       <section className="journey-stage">
         {concepts.length > 0 && <h3>Reviewer lessons</h3>}
@@ -143,7 +143,7 @@ export default function Journey({
               return <li className="surface" key={module.id}>
                 <div><strong>{module.title}</strong><p>{status}</p>
                   {parent && <small className="journey-prerequisite">Builds on {parent.title.toLowerCase()}</small>}
-                  <small>{topicCounts[module.id]?.answer_ready ?? module.quiz_ids.length} answer-ready</small>
+                  <small>{Math.max(0,(topicCounts[module.id]?.answer_ready ?? module.quiz_ids.length)-(topicCounts[module.id]?.verified ?? module.quiz_ids.length))} linked imports · {module.quiz_ids.length} verified</small>
                 </div>
                 <button className="secondary" aria-label={'Open lesson: ' + module.title} onClick={() => openLesson(module)}>Open lesson</button>
               </li>
@@ -197,7 +197,6 @@ export default function Journey({
       })}</div>
       {subjectCounts?.some(row => !subjects[row.subject] && row.imported > 0) && <div className="surface journey-banner">
         <p>Additional answer-ready questions are available in All subjects while their classification is reviewed.</p>
-        <button className="secondary" onClick={() => openPractice('')}>Browse all practice</button>
       </div>}
     </section>}
     {view === 'today' && <button className="secondary" onClick={openLearn}>Explore subjects</button>}
