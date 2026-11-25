@@ -4,6 +4,9 @@ import { createRoot } from 'react-dom/client'
 import { client, rpc, tutor } from './api'
 import Hybrid from './Hybrid'
 import ConceptLab from './ConceptLab'
+import MathPath from './MathPath'
+import { mathPath } from './math-path.mjs'
+import { conceptState, dailyConcepts } from './concept-progress.mjs'
 import './style.css'
 
 const stages = [
@@ -213,6 +216,8 @@ function Desk({ email }) {
   const [progress, setProgress] = useState(emptyProgress)
   const [track, setTrack] = useState(() => localStorage.getItem('reviewer-track') === 'subprofessional' ? 'subprofessional' : 'professional')
   const [tab, setTab] = useState('learn')
+  const [pathStart, setPathStart] = useState(null)
+  const [conceptRows, setConceptRows] = useState([])
   const [detail, setDetail] = useState(null)
   const [flow, setFlow] = useState(null)
   const [error, setError] = useState('')
@@ -245,7 +250,15 @@ function Desk({ email }) {
     return () => document.removeEventListener('visibilitychange', onResume)
   }, [catalog])
 
+  useEffect(() => {
+    if (!catalog || pathStart) return
+    let active = true
+    rpc('v2_concept_progress').then(rows => { if (active && Array.isArray(rows)) setConceptRows(rows) }).catch(() => {})
+    return () => { active = false }
+  }, [catalog, tab, pathStart])
+
   function navigate(stage) {
+    setPathStart(null)
     setPracticeTopic('')
     setTab(stage)
     setDetail(null)
@@ -299,11 +312,19 @@ function Desk({ email }) {
   const completed = modules.filter((module) => progress.completed.includes(module.id)).length
   const mastered = modules.filter((module) => progress.mastery[module.id]?.mastered).length
   const groups = [...new Set(modules.map((module) => module.track))]
+  const states = Object.fromEntries(Object.keys(mathPath).map(id => [id, conceptState(conceptRows, id)]))
+  const recommendations = dailyConcepts(conceptRows, mathPath)
+  const conceptDue = Object.keys(states).filter(id => states[id].dueNow && states[id].unused.length)
+  const weak = Object.keys(states).filter(id => states[id].weak)
+  function openPath(id) {
+    setPathStart(id)
+    window.scrollTo(0, 0)
+  }
   const page = {
     learn: ['Your study plan', 'Read a lesson, then apply it in a short quiz.'],
     quiz: ['Practice by topic', 'Choose a topic and get a verified explanation after each answer.'],
     master: ['Your mastery', 'A topic is mastered at 80% accuracy across at least three distinct questions and two sessions.'],
-    repeat: ['Spaced review', 'Revisit questions when they are due to keep the skill fresh.']
+    repeat: ['Spaced review', 'Review guided concepts and verified questions when they are due.']
   }[tab]
 
   return <div className="desk">
@@ -325,7 +346,10 @@ function Desk({ email }) {
         }}>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </div>
       {error && <p role="alert" className="notice error">{error}</p>}
-      {flow ? <>
+      {pathStart ? <>
+        <button className="quiet back" onClick={() => setPathStart(null)}>Back to {tab === 'repeat' ? 'reviews' : 'study plan'}</button>
+        <MathPath key={pathStart} initialConcept={pathStart} />
+      </> : flow ? <>
         <button className="quiet back" onClick={() => { setFlow(null); setError('') }}>End session</button>
         <QuestionFlow key={flow.key} {...flow} finish={() => navigate('master')} refresh={refresh} />
       </> : detail ? <>
@@ -347,6 +371,28 @@ function Desk({ email }) {
         <ConceptLab topic={detail.id} />
       </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track + practiceTopic} library={tab === 'library'} track={track} modules={catalog} initialTopic={practiceTopic} /> : <>
         <header className="page-head"><h1>{page[0]}</h1><p>{page[1]}</p></header>
+        {tab === 'learn' && <section className="surface concept-lab">
+          <h2>Study today</h2>
+          <p>{conceptDue.length ? 'Start with a due review, then continue your learning pathway.'
+            : 'Start with a short guided exercise. Use a hint whenever you need help.'}</p>
+          <div className="actions">
+            {recommendations.map((id, index) => <button className={index ? 'secondary' : 'primary'}
+              key={id} onClick={() => openPath(id)}>{states[id].dueNow ? 'Review' : 'Study'} {mathPath[id].title.toLowerCase()}</button>)}
+            <button className="secondary" onClick={() => openPath('signed')}>Browse the learning pathway</button>
+          </div>
+        </section>}
+        {tab === 'master' && <section className="surface concept-lab">
+          <h2>Adaptive learning progress</h2>
+          <p>{Object.values(states).filter(state => state.mastery).length} of {Object.keys(mathPath).length} guided concepts mastered.</p>
+          <p>Guided concept mastery requires 90% on independent work and a successful later review.</p>
+          {weak.map(id => <button className="secondary" key={id} onClick={() => openPath(mathPath[id].prerequisite ?? id)}>
+            Strengthen {mathPath[id].title.toLowerCase()}</button>)}
+        </section>}
+        {tab === 'repeat' && conceptDue.length > 0 && <section className="surface concept-lab">
+          <h2>Guided concept reviews</h2>
+          <div className="actions">{conceptDue.map(id => <button className="secondary" key={id} onClick={() => openPath(id)}>
+            Review {mathPath[id].title.toLowerCase()}</button>)}</div>
+        </section>}
         {tab === 'learn' && <div className="summary" aria-label="Study summary">
           <div><strong>{completed}<span> / {modules.length}</span></strong><small>Lessons complete</small></div>
           <div><strong>{mastered}</strong><small>Topics mastered</small></div>
@@ -376,7 +422,7 @@ function Desk({ email }) {
           })}</div>
         </section>)}
         {tab === 'repeat' && <section className="surface empty">
-          <h2>{due.length ? due.length + (due.length === 1 ? ' review due' : ' reviews due') : 'You’re caught up'}</h2>
+          <h2>{due.length ? due.length + (due.length === 1 ? ' verified question due' : ' verified questions due') : 'Verified question reviews'}</h2>
           {due.length ? <button className="primary" onClick={() => start(due.map((r) => r.question_id), 'repeat', 'Spaced review')}>Start due reviews</button>
             : <p>{reviews.length ? 'Your next review is ' + dateLabel(reviews[0].due_at) + '.' : 'Answer a quiz question to start your review schedule.'}</p>}
         </section>}

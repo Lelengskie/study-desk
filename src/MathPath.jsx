@@ -15,8 +15,8 @@ const misconceptionPrompts = {
   possible_double_counting: 'Did you count readers in both groups twice? Place those readers in the overlap first.',
 }
 
-export default function MathPath() {
-  const [concept, choose] = useState('signed')
+export default function MathPath({ initialConcept = 'signed' }) {
+  const [concept, choose] = useState(initialConcept)
   const [rows, setRows] = useState([])
   const [sync, setSync] = useState('loading')
   const refresh = useCallback(async () => {
