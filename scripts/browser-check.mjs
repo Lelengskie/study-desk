@@ -65,6 +65,7 @@ try {
       id: 'fixture', title: 'Sample mock examination', format: 'pdf', role: 'mock exam',
       editions: ['2027'], drive_file_id: 'fixture-only'
     }])
+    if (path.endsWith('/curated_status')) return send([])
     if (path.endsWith('/curated_next')) return send({
       stage:curatedStage,title:'Subject–verb agreement',lesson:'Find the subject of each clause.',
       example:'A list of records is ready.',prompt:curatedStage ? 'Complete: The folders ___ ready.' : 'Choose the singular subject.',
@@ -328,9 +329,22 @@ try {
   await page.getByRole('button', { name: 'Start due reviews' }).click()
   await page.getByRole('heading', { name: 'What comes after 3, 6, 9?' }).waitFor()
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
+  assert.deepEqual([gradeCalls, tutorCalls, tutorGrades], [1, 1, 1])
+  await page.getByRole('button',{name:'Learn',exact:true}).click()
+  await page.getByRole('heading',{name:'Filipino',exact:true}).waitFor()
+  await page.getByRole('button',{name:'Open Numerical Ability roadmap'}).click()
+  await page.getByRole('heading',{name:'Required curriculum'}).waitFor()
+  const subjectMeter = page.getByRole('progressbar',{name:/Curriculum mastery/}).first()
+  assert.equal(await subjectMeter.getAttribute('max'),'51')
+  await page.getByRole('button',{name:'Take verified subject test'}).click()
+  await page.getByRole('radio',{name:'Twelve'}).check()
+  assert.equal(await page.getByText('Add three to the last term.').count(),0)
+  assert.equal(gradeCalls,1)
+  await page.getByRole('button',{name:'Submit test'}).click()
+  await page.getByText('Add three to the last term.').waitFor()
+  assert.equal(gradeCalls,2)
   await page.getByRole('button', { name: 'Sign out' }).click()
   await page.getByRole('heading', { name: 'Make time to study.' }).waitFor()
-  assert.deepEqual([gradeCalls, tutorCalls, tutorGrades], [1, 1, 1])
   assert.deepEqual(errors, [])
   console.log((desktop ? '1440' : '375') + ' px browser flow passed: verified study, library search, randomized unscored practice, bookmarks, reports, tutor fallback and sign-out.')
 } finally {

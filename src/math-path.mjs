@@ -1,5 +1,7 @@
 import { foundationSkills } from './foundation-skills.mjs'
 
+import { coreNumerical } from './core-numerical.mjs'
+
 export const analyticalConcepts = new Set(['sequence', 'venn', 'syllogism', 'arrangement', 'sufficiency', 'deductive-counterexample'])
 export const firstSeed = 2
 export const lastSeed = 999
@@ -11,6 +13,7 @@ const lesson = (title, prerequisite, generate) => ({ title, prerequisite, genera
 // Each explanation is generated from the same bounded integers as its question.
 export const mathPath = {
   ...foundationSkills,
+  ...coreNumerical,
   signed: lesson('Signed arithmetic', 'basic-arithmetic', n => ({
     question: `A balance of −${n + 3} pesos increases by 3 pesos. What is the new balance in pesos?`,
     answer: String(-n),

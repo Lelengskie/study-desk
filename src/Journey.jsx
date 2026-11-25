@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { conceptLabel } from './concept-labels.mjs'
+import { curriculum, curriculumEntry } from './curriculum.mjs'
 import { rpc } from './api'
 import { analyticalConcepts as analytical, mathPath } from './math-path.mjs'
 import { activeStudyDays, journeyRewards } from './journey-progress.mjs'
@@ -8,6 +9,7 @@ const subjects = {
   'Verbal Ability': { icon: 'Aa', color: 'verbal', intro: 'Read for meaning and choose clear, precise language.' },
   'Numerical Ability': { icon: '∑', color: 'numerical', intro: 'Build confidence with numbers before tackling word problems.' },
   'Analytical Ability': { icon: '∴', color: 'analytical', intro: 'Find patterns, test conclusions, and reason from evidence.' },
+  Filipino: { icon: 'Fi', color: 'verbal', intro: 'Pag-aralan ang talasalitaan, paggamit ng wika, at pagbasa.' },
   'Clerical Ability': { icon: 'A–Z', color: 'clerical', intro: 'Practice accurate sorting, spelling, and transcription.' },
   'General Information': { icon: '§', color: 'information', intro: 'Learn core principles of government, rights, and public service.' },
 }
@@ -46,7 +48,7 @@ function SubjectProgress({ label, count, total }) {
 }
 
 export default function Journey({
-  view, profileId, groups, modules, progress, attempts, topicCounts, subjectCounts, conceptCounts, states, recommendations, subject, chooseSubject, openLearn, openLesson, openPath, openQuiz, openPractice,
+  view, profileId, groups, modules, progress, attempts, topicCounts, subjectCounts, conceptCounts, states, recommendations, subject, chooseSubject, openLearn, openLesson, openPath, openQuiz, openPractice, curated, openCurated, startTest,
 }) {
   const goalKey = 'study-desk:weekly-goal:' + profileId
   const [goal, setGoal] = useState(() => {
@@ -86,6 +88,12 @@ export default function Journey({
   const rewards = journeyRewards(attempts, states, progress.completed.length,
     Object.values(progress.mastery).filter(stat => stat.mastered).length)
 
+  const applicable = [...new Set([...groups, ...(groups.includes('Verbal Ability') ? ['Filipino'] : [])])]
+  function requiredTopics(name) {
+    return Object.entries(curriculum[name] ?? {}).map(([topic, keys]) => [
+      topic, keys.map(key => curriculumEntry(key, states, curated ?? {})),
+    ])
+  }
   function subjectData(name) {
     const lessons = modules.filter(module => module.track === name)
       .sort((a, b) => (reviewerPath[a.id]?.stage ?? 0) - (reviewerPath[b.id]?.stage ?? 0))
@@ -95,23 +103,38 @@ export default function Journey({
       ?? concepts.find(id => !states[id].mastery && (!mathPath[id].prerequisite || states[mathPath[id].prerequisite].mastery))
       ?? concepts.find(id => !states[id].mastery)
     const nextLesson = lessons.find(module => !progress.completed.includes(module.id)) ?? lessons[0]
-    return {
-      lessons, concepts, nextConcept, nextLesson,
-      completed: lessons.filter(module => progress.completed.includes(module.id)).length,
-      mastered: lessons.filter(module => progress.mastery[module.id]?.mastered).length
-        + concepts.filter(id => states[id].mastery).length,
-    }
+    const entries = requiredTopics(name).flatMap(([, items]) => items)
+    return { lessons, concepts, nextConcept, nextLesson, entries,
+      mastered: entries.filter(item => item.mastered).length }
+
   }
 
-  if (subject && subjects[subject] && groups.includes(subject)) {
+  if (subject && subjects[subject] && applicable.includes(subject)) {
     const theme = subjects[subject]
-    const { lessons, concepts, nextConcept, nextLesson } = subjectData(subject)
+    const { lessons, concepts, nextConcept, nextLesson, entries, mastered } = subjectData(subject)
     return <section className={'journey-roadmap journey-' + theme.color}>
       <button className="quiet" onClick={() => chooseSubject(null)}>Back to subjects</button>
       <header className="journey-banner surface">
         <span className="journey-icon" aria-hidden="true">{theme.icon}</span>
         <div><h2>{subject}</h2><p>{theme.intro}</p></div>
       </header>
+      {lessons.some(module => module.quiz_ids.length) && <button className="primary"
+        onClick={() => startTest(subject + ' verified test', lessons)}>Take verified subject test</button>}
+      <SubjectProgress label="Curriculum mastery" count={mastered} total={entries.length} />
+      <section className="journey-stage">
+        <h3>Required curriculum</h3>
+        {requiredTopics(subject).map(([topic, items]) => <details key={topic} className="journey-stage" open={items.some(item => item.due)}>
+          <summary>{topic} · {items.filter(item => item.mastered).length}/{items.length} mastered</summary>
+          <SubjectProgress label={topic + ' mastery'} count={items.filter(item => item.mastered).length} total={items.length} />
+          <ol className="journey-steps">{items.map(item => <li key={item.id}>
+            <SubjectProgress label={item.title + ' mastery'} count={Number(item.mastered)} total={1} />
+            {item.kind === 'pending' ? <small>Mastery assessment pending</small> :
+              <button className="secondary" onClick={() => item.kind === 'guided' ? openPath(item.id) : openCurated(item.id)}>
+                {item.due ? 'Review' : 'Study'}<span className="sr-only"> {item.title}</span>
+              </button>}
+          </li>)}</ol>
+        </details>)}
+      </section>
       {concepts.length > 0 && progression.map((stage, index) => {
         const entries = concepts.filter(id => Math.min(2, Math.floor(conceptDepth(id) / 3)) === index)
         return entries.length > 0 && <details key={stage} open={index === 0 || entries.includes(nextConcept)} className="journey-stage">
@@ -146,6 +169,8 @@ export default function Journey({
                   <small>{Math.max(0,(topicCounts[module.id]?.answer_ready ?? module.quiz_ids.length)-(topicCounts[module.id]?.verified ?? module.quiz_ids.length))} linked imports · {module.quiz_ids.length} verified</small>
                 </div>
                 <button className="secondary" aria-label={'Open lesson: ' + module.title} onClick={() => openLesson(module)}>Open lesson</button>
+                {!!module.quiz_ids.length && <button className="secondary"
+                  onClick={() => startTest(module.title + ' verified test',[module])}>Take topic test</button>}
               </li>
             })}</ol>
           </section>
@@ -175,7 +200,7 @@ export default function Journey({
   return <>
     {view === 'learn' && <section className="journey-subjects" aria-labelledby="journey-subjects">
       <h2 id="journey-subjects">Explore subjects</h2>
-      <div className="journey-grid">{groups.filter(name => subjects[name]).map(name => {
+      <div className="journey-grid">{applicable.filter(name => subjects[name]).map(name => {
         const theme = subjects[name]
         const data = subjectData(name)
         const coverage = subjectCounts?.find(row => row.subject === name)
@@ -185,12 +210,11 @@ export default function Journey({
           {coverage && <p>{coverage.imported} imported · {coverage.verified} verified</p>}
           {coverage?.subject_only > 0 && <small>{coverage.subject_only} available in subject practice while topic mapping is reviewed</small>}
           {coverage?.imported > 0 && <button className="quiet" onClick={() => openPractice(name)}>Practice {name.toLowerCase()}</button>}
-          <SubjectProgress label="Reviewer lessons completed" count={data.completed} total={data.lessons.length} />
-          <SubjectProgress label="Topics and concepts mastered" count={data.mastered} total={data.lessons.length + data.concepts.length} />
+          <SubjectProgress label={name + " curriculum mastery"} count={data.mastered} total={data.entries.length} />
           {(data.nextConcept || data.nextLesson) && <p className="journey-next">Next: {data.nextConcept ? mathPath[data.nextConcept].title : data.nextLesson.title}</p>}
           <div className="actions">
             <button className="primary" aria-label={'Continue learning ' + name}
-              onClick={() => data.nextConcept ? openPath(data.nextConcept) : openLesson(data.nextLesson)}>Continue learning</button>
+              onClick={() => data.nextConcept ? openPath(data.nextConcept) : data.nextLesson ? openLesson(data.nextLesson) : openCurated('filipino')}>Continue learning</button>
             <button className="quiet" aria-label={'Open ' + name + ' roadmap'} onClick={() => chooseSubject(name)}>Roadmap</button>
           </div>
         </article>

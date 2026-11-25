@@ -3,7 +3,7 @@ import { rpc } from './api'
 
 const labels = ['Foundation', 'Beginner', 'Intermediate', 'Advanced', 'Examination', 'Retention']
 
-export default function CuratedSkill({ skill, continuePractice }) {
+export default function CuratedSkill({ skill, continuePractice, onProgress }) {
   const [item,setItem] = useState(null)
   const [result,setResult] = useState(null)
   const [assisted,setAssisted] = useState(false)
@@ -21,7 +21,7 @@ export default function CuratedSkill({ skill, continuePractice }) {
   async function answer(choice) {
     setBusy(true)
     setError('')
-    try { setResult(await rpc('curated_submit',{skill_id:skill, expected_stage:item.stage, chosen:choice, used_example:assisted})) }
+    try { setResult(await rpc('curated_submit',{skill_id:skill, expected_stage:item.stage, chosen:choice, used_example:assisted})); void onProgress?.() }
     catch { setError('The activity changed or could not be saved. Load the current question again.') }
     finally { setBusy(false) }
   }

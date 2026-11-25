@@ -4,12 +4,14 @@ import { createRoot } from 'react-dom/client'
 import { client, rpc, tutor } from './api'
 import Hybrid from './Hybrid'
 import CuratedSkill from './CuratedSkill'
+import VerifiedLearnTest from './VerifiedLearnTest'
 import LearningPractice from './LearningPractice'
 import CurriculumPrimer, { hasPrimer } from './CurriculumPrimer'
 import { conceptLabel } from './concept-labels.mjs'
 import ConceptLab from './ConceptLab'
 import MathPath from './MathPath'
 import Journey from './Journey'
+import { curatedTitles } from './curriculum.mjs'
 import { analyticalConcepts, mathPath } from './math-path.mjs'
 import { conceptState, dailyConcepts } from './concept-progress.mjs'
 import './style.css'
@@ -237,12 +239,14 @@ function Desk({ email, profileId }) {
   const [progress, setProgress] = useState(emptyProgress)
   const [track, setTrack] = useState(() => localStorage.getItem('reviewer-track') === 'subprofessional' ? 'subprofessional' : 'professional')
   const [tab, setTab] = useState('today')
+  const [curated, setCurated] = useState({})
   const [showCurated, setShowCurated] = useState(false)
   const [adaptiveLesson, setAdaptiveLesson] = useState(false)
   const [embeddedPractice, setEmbeddedPractice] = useState(null)
   const [pathStart, setPathStart] = useState(null)
   const [conceptRows, setConceptRows] = useState([])
   const [detail, setDetail] = useState(null)
+  const [test, setTest] = useState(null)
   const [flow, setFlow] = useState(null)
   const [error, setError] = useState('')
   const [blocked, setBlocked] = useState(false)
@@ -291,6 +295,7 @@ function Desk({ email, profileId }) {
     setTab(stage)
     setDetail(null)
     setFlow(null)
+    setTest(null)
     setError('')
     window.scrollTo(0, 0)
     void refresh()
@@ -313,7 +318,17 @@ function Desk({ email, profileId }) {
     return () => { active = false }
   }, [track])
 
+  async function refreshCurated() {
+    try {
+      const rows = await rpc('curated_status')
+      setCurated(Object.fromEntries(rows.map(row => [row.skill, row])))
+    } catch { /* Preserve the last loaded mastery evidence. */ }
+  }
+
+  useEffect(() => { if (catalog) void refreshCurated() }, [catalog, track])
+
   async function refresh() {
+    void refreshCurated()
     const request = ++progressRequest.current
     try {
       const updated = await rpc('study_progress')
@@ -360,7 +375,23 @@ function Desk({ email, profileId }) {
     setAdaptiveLesson(false)
     setEmbeddedPractice({ subject, topic: concept ? 'concept:' + concept : '' })
   }
+  function openCurated(id) {
+    setTab('learn')
+    if (id === 'filipino') {
+      setDetail(null)
+      openImported('Verbal Ability', id)
+    } else {
+      const module = modules.find(row => row.id === id)
+      if (module) openLesson(module)
+    }
+  }
+  const dueSkills = Object.keys(curatedTitles).filter(id => curated[id]?.due && (id === 'filipino' || activeIds.has(id)))
+  function startTest(title, testModules) {
+    setTest({ title, modules: testModules })
+    window.scrollTo(0, 0)
+  }
   function openLesson(module) {
+    setTest(null)
     setShowCurated(assessedSkills.has(module.id))
     setEmbeddedPractice(null)
     setAdaptiveLesson(false)
@@ -399,7 +430,7 @@ function Desk({ email, profileId }) {
         conceptCounts={conceptCounts} />
     : embeddedPractice.topic === 'concept:filipino'
       ? <div key={track + 'filipino'}>
-          {showCurated && <CuratedSkill key="filipino" skill="filipino" continuePractice={() => {setShowCurated(false); setAdaptiveLesson(true)}} />}
+          {showCurated && <CuratedSkill onProgress={refreshCurated} key="filipino" skill="filipino" continuePractice={() => {setShowCurated(false); setAdaptiveLesson(true)}} />}
           {adaptiveLesson && <LearningPractice track={track} subject="Verbal Ability"
             topics={['concept:filipino']} onFinish={() => setAdaptiveLesson(false)} />}
         </div>
@@ -426,7 +457,10 @@ function Desk({ email, profileId }) {
         }}>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </div>
       {error && <p role="alert" className="notice error">{error}</p>}
-      {pathStart ? <>
+      {test ? <>
+        <button className="quiet back" onClick={() => setTest(null)}>Back to Learn</button>
+        <VerifiedLearnTest {...test} openLesson={openLesson} finish={() => setTest(null)} refresh={refresh} />
+      </> : pathStart ? <>
         <button className="quiet back" onClick={() => {setPathStart(null); setEmbeddedPractice(null)}}>Back to {tab === 'repeat' ? 'reviews' : journeySubject || 'Learn'}</button>
         <MathPath key={pathStart} initialConcept={pathStart} importedCoverage={conceptCoverage}
           renderPractice={(concept, onFinish, band) => <LearningPractice key={track + concept} track={track}
@@ -458,7 +492,7 @@ function Desk({ email, profileId }) {
             </li>)}</ul>
           </details>}
         </article>
-        {showCurated && <CuratedSkill key={detail.id} skill={detail.id}
+        {showCurated && <CuratedSkill onProgress={refreshCurated} key={detail.id} skill={detail.id}
           continuePractice={() => {setShowCurated(false); continueLesson(detail)}} />}
         {!showCurated && !assessedSkills.has(detail.id) && !adaptiveLesson && hasPrimer(detail.id) && <CurriculumPrimer key={detail.id}
           concept={detail.id} onReady={() => continueLesson(detail)} />}
@@ -476,12 +510,14 @@ function Desk({ email, profileId }) {
         {tab === 'tutor' && <button className="primary" onClick={() => openImported('',null)}>Choose an imported question</button>}
         {tab === 'today' && <section className="surface concept-lab">
           <h2>Study today</h2>
-          <p>{conceptDue.length || due.length ? 'Start with a due review, then continue your learning pathway.'
+          <p>{conceptDue.length || due.length || dueSkills.length ? 'Start with a due review, then continue your learning pathway.'
             : 'Start with a short guided exercise. Use a hint whenever you need help.'}</p>
           <div className="actions">
             {recommendations.map((id, index) => <button className={index ? 'secondary' : 'primary'}
               key={id} onClick={() => openPath(id)}>{index === 0 ? 'Continue learning: ' : states[id].dueNow ? 'Review ' : 'Study '}{mathPath[id].title.toLowerCase()}</button>)}
             <button className="secondary" onClick={() => openPath('signed')}>Browse the learning pathway</button>
+            {dueSkills.map(id => <button className="secondary" key={id} onClick={() => openCurated(id)}>
+              Review {curatedTitles[id]}</button>)}
             {due.length > 0 && <button className="secondary" onClick={() => navigate('repeat')}>
               {due.length} verified {due.length === 1 ? 'review' : 'reviews'} due
             </button>}
@@ -502,7 +538,7 @@ function Desk({ email, profileId }) {
         </section>}
         {['today','learn','master'].includes(tab) && <Journey view={tab} profileId={profileId} groups={groups} modules={modules} progress={progress}
           attempts={conceptRows} topicCounts={topicCounts} subjectCounts={subjectCounts} conceptCounts={conceptCounts} states={states} recommendations={recommendations} subject={journeySubject}
-          chooseSubject={chooseJourneySubject} openLearn={() => navigate('learn')} openLesson={openLesson} openPath={openPath}
+          curated={curated} openCurated={openCurated} startTest={startTest} chooseSubject={chooseJourneySubject} openLearn={() => navigate('learn')} openLesson={openLesson} openPath={openPath}
           openQuiz={() => navigate('quiz')} openPractice={openImported} />}
         {importedPanel}
         {!modules.length && <div className="surface empty"><h2>Study content is waiting to be imported</h2><p>Ask the study desk owner to finish the private import.</p></div>}
