@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { client, rpc, tutor } from './api'
 import Hybrid from './Hybrid'
+import ConceptLab from './ConceptLab'
 import './style.css'
 
 const stages = [
@@ -343,6 +344,7 @@ function Desk({ email }) {
             }}>Practice this topic</button>
           </div>
         </article>
+        <ConceptLab topic={detail.id} />
       </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track + practiceTopic} library={tab === 'library'} track={track} modules={catalog} initialTopic={practiceTopic} /> : <>
         <header className="page-head"><h1>{page[0]}</h1><p>{page[1]}</p></header>
         {tab === 'learn' && <div className="summary" aria-label="Study summary">

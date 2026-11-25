@@ -23,7 +23,7 @@ try {
   const quizOptions = [{ id: '1', text: 'Twelve' }, { id: '2', text: 'Five' }]
   const practiceOptions = [{ id: '1', text: 'Four' }, { id: '2', text: 'Seven' }]
   const testModule = {
-    id: 'math', track: 'Numerical Ability', title: 'Number patterns',
+    id: 'arithmetic', track: 'Numerical Ability', title: 'Number patterns',
     levels: ['professional', 'subprofessional'], lesson: 'Compare each term to the one before it.',
     quiz_ids: ['sequence-01']
   }
@@ -55,7 +55,7 @@ try {
     })
     if (path === '/auth/v1/logout') return route.fulfill({ status: 204, headers })
     assert.ok(route.request().headers().authorization?.includes(token), 'Protected request used a session token')
-    if (path.endsWith('/study_catalog')) return send({ modules: [testModule] })
+    if (path.endsWith('/study_catalog')) return send({ modules: [testModule, { ...testModule, id: 'logic', title: 'Check a conclusion' }, { ...testModule, id: 'word-problems', title: 'Speed and distance' }] })
     if (path.endsWith('/hybrid_library')) return send([{
       id: 'fixture', title: 'Sample mock examination', format: 'pdf', role: 'mock exam',
       editions: ['2027'], drive_file_id: 'fixture-only'
@@ -69,10 +69,10 @@ try {
     if (path.endsWith('/hybrid_feedback')) return send(null)
     if (path.endsWith('/study_progress')) return send({
       completed,
-      mastery: gradeCalls ? { math: { attempts: gradeCalls, correct: 1, distinct_items: 1, sessions: 1, mastered: false } } : {},
-      reviews: gradeCalls ? [{ topic_id: 'math', question_id: 'sequence-01', step: 1, is_due: true, due_at: due }] : []
+      mastery: gradeCalls ? { arithmetic: { attempts: gradeCalls, correct: 1, distinct_items: 1, sessions: 1, mastered: false } } : {},
+      reviews: gradeCalls ? [{ topic_id: 'arithmetic', question_id: 'sequence-01', step: 1, is_due: true, due_at: due }] : []
     })
-    if (path.endsWith('/study_complete')) { completed = ['math']; return send(null) }
+    if (path.endsWith('/study_complete')) { completed = ['arithmetic']; return send(null) }
     if (path.endsWith('/study_question')) return send({
       id: 'sequence-01', language: 'en', stem: 'What comes after 3, 6, 9?', options: quizOptions
     })
@@ -109,6 +109,31 @@ try {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await page.getByRole('heading', { name: 'Your study plan' }).waitFor()
   await page.getByRole('button', { name: 'Open lesson: Number patterns' }).click()
+  await page.getByRole('heading', { name: 'Percent means out of 100' }).waitFor()
+  await page.getByRole('button', { name: 'Get a hint' }).click()
+  await page.getByText('Divide the percentage by 100 before multiplying by the total.').waitFor()
+  assert.equal(await page.getByText(/25% is 25\/100/).count(), 0)
+  await page.getByLabel('Find the amount').fill('20')
+  await page.getByRole('button', { name: 'Check my answer' }).click()
+  await page.getByText('Correct.', { exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Show worked solution' }).click()
+  await page.getByText(/25% is 25\/100/).waitFor()
+  await page.getByRole('button', { name: 'Try different values' }).click()
+  assert.equal(await page.getByLabel('Find the amount').inputValue(), '')
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
+  await page.getByRole('button', { name: 'Back to lessons' }).click()
+  await page.getByRole('button', { name: 'Open lesson: Check a conclusion' }).click()
+  await page.getByRole('heading', { name: 'Test a conclusion with a counterexample' }).waitFor()
+  await page.getByLabel('Is every member a volunteer in this example?').selectOption('no')
+  await page.getByRole('button', { name: 'Check my answer' }).click()
+  await page.getByText('Correct.', { exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Back to lessons' }).click()
+  await page.getByRole('button', { name: 'Open lesson: Speed and distance' }).click()
+  await page.getByLabel('Find the distance in kilometers').fill('120')
+  await page.getByRole('button', { name: 'Check my answer' }).click()
+  await page.getByText('Correct.', { exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Back to lessons' }).click()
+  await page.getByRole('button', { name: 'Open lesson: Number patterns' }).click()
   await page.getByRole('button', { name: 'Mark lesson complete' }).click()
   await page.getByRole('button', { name: 'Lesson complete' }).waitFor()
   await page.getByRole('button', { name: 'Start quiz', exact: true }).click()
@@ -124,7 +149,7 @@ try {
   await page.getByText('Question 1 of 1').waitFor()
   await page.getByLabel('Sample option', { exact: true }).check()
   await page.getByRole('button', { name: 'Check answer availability' }).click()
-  await page.getByText('Answer: Sample option').waitFor()
+  await page.getByText('Answer: Sample option', { exact: true }).waitFor()
   await page.getByRole('button', { name: 'Bookmark', exact: true }).click()
   await page.getByRole('button', { name: 'Remove bookmark' }).waitFor()
   await page.getByLabel('Report a problem').fill('Synthetic feedback')
@@ -159,7 +184,7 @@ try {
   await page.getByRole('heading', { name: 'Make time to study.' }).waitFor()
   assert.deepEqual([gradeCalls, tutorCalls, tutorGrades], [1, 1, 1])
   assert.deepEqual(errors, [])
-  console.log((desktop ? '1440' : '375') + ' px browser flow passed: verified study, library search, randomized unscored practice, bookmarks, reports, tutor fallback and sign-out.')
+  console.log((desktop ? '1440' : '375') + ' px browser flow passed: guided concept lessons, verified study, library search, randomized unscored practice, bookmarks, reports, tutor fallback and sign-out.')
 } finally {
   await browser?.close()
   await new Promise((resolve, reject) => server.httpServer.close(error => error ? reject(error) : resolve()))

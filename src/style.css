@@ -250,3 +250,8 @@ progress { display: block; width: 100%; height: .55rem; accent-color: var(--acce
 .hybrid-options { min-width: 0; }
 .hybrid-options label { display: block; margin-block: 6px; }
 .hybrid-report { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.concept-lab { display: grid; gap: 12px; margin-top: 16px; padding: clamp(16px, 4vw, 28px); }
+.concept-controls { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); }
+.concept-lab label { display: grid; gap: 4px; }
+.concept-lab input, .concept-lab progress { max-width: 100%; }
+.concept-lab form { display: grid; gap: 10px; }
