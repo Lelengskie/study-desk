@@ -42,3 +42,12 @@ export function LearningHeader({ title, subject, stage, mastery, mastered, child
     <span className="sr-only">Learning stage: {stage}</span>
   </header>
 }
+
+export function ExamTip({ children }) {
+  if (!children) return null
+  return <aside className="lesson-tip">
+    <strong><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+      <path d="M9 18h6m-5 3h4m-5-6c0-2-3-2.5-3-6a6 6 0 1 1 12 0c0 3.5-3 4-3 6z" />
+    </svg>Exam tip</strong><p>{children}</p>
+  </aside>
+}

@@ -3,6 +3,7 @@ import { AnswerChoices, AnswerFeedback } from './AnswerFeedback'
 import React, { useEffect, useRef, useState } from 'react'
 import { client, rpc } from './api'
 import PracticeResponse from './PracticeResponse'
+import { ExamTip } from './LearningPresentation'
 import MathText from './MathText'
 import { conceptLabel } from './concept-labels.mjs'
 import { equivalentNumber } from './practice-response.mjs'
@@ -203,14 +204,22 @@ export function PracticeCard({ item, updateSaved, onResult }) {
   const explanation = manual?.explanation ?? grammar ?? answer?.explanation
   return <article className="hybrid-practice-card">
     <h2 className="lesson-question-title">{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem}</h2>
-    <details className="lesson-options"><summary>Answer source</summary>
+    <details className="question-options"><summary>Question options</summary>
+      <div className="question-option-list">
+      <button className="quiet" disabled={busy} onClick={() => act(async () => {
+        await rpc('hybrid_feedback', { question_id: item.id, bookmark: !item.saved })
+        updateSaved(item.id, !item.saved)
+      })}>{item.saved ? 'Remove bookmark' : 'Bookmark'}</button>
+    <button className="quiet" onClick={() => {setReportError('');reportDialog.current.showModal()}}>Report a problem</button>
+      <details><summary>Answer source</summary>
       <p>{verified ? 'Independently checked · Unscored practice' : statuses[item.status]}</p>
+      </details></div>
     </details>
-    {!answer && (typed ? (context ? <PracticeResponse item={context} math={item.subject === 'Numerical Ability'} response={choice} change={setChoice} /> :
-      <p role="status">Loading question context…</p>) :
+    {typed ? (!answer && (context ? <PracticeResponse item={context} math={item.subject === 'Numerical Ability'} response={choice} change={setChoice} /> :
+      <p role="status">Loading question context…</p>)) :
       <AnswerChoices name={'practice-'+item.id} options={options.map(option => ({id:option.id ?? option.label,text:option.text}))}
         value={answer ? submitted : choice} onChange={setChoice} disabled={busy || !!answer}
-        correct={answer?.answer} />)}
+        correct={answer?.answer} />}
     <div className="actions hybrid-actions">
       {!answer && <button className="primary" disabled={!choice.trim() || busy || (typed && !context)} onClick={() => act(async () => {
         const result = await rpc('hybrid_answer', { question_id: item.id })
@@ -219,10 +228,6 @@ export function PracticeCard({ item, updateSaved, onResult }) {
         onResult?.(typed ? result.exact_value == null ? 'self-check' : equivalentNumber(choice,result.exact_value)
           : choice === result.answer)
       })}>Check answer</button>}
-      <button className="quiet" disabled={busy} onClick={() => act(async () => {
-        await rpc('hybrid_feedback', { question_id: item.id, bookmark: !item.saved })
-        updateSaved(item.id, !item.saved)
-      })}>{item.saved ? 'Remove bookmark' : 'Bookmark'}</button>
     </div>
     {!verified && <details className="concept-worked"><summary>Ask AI Tutor</summary>
       <div className="actions">
@@ -253,7 +258,7 @@ export function PracticeCard({ item, updateSaved, onResult }) {
     {answer && <AnswerFeedback correct={gradedCorrect} answer={modelAnswer ? answerLabel : null}
       submitted={options.find(option => (option.id ?? option.label) === submitted)?.text ?? submitted}
       explanation={explanation}>
-      {manual && <p><strong>Exam shortcut</strong> <MathText text={manual.shortcut} /></p>}
+      {manual && <ExamTip><MathText text={manual.shortcut} /></ExamTip>}
       {modelAnswer && !explanation && <p>A worked explanation is currently unavailable for this question.</p>}
       {!modelAnswer && <p>{statuses[answer.status]}</p>}
     </AnswerFeedback>}
@@ -261,7 +266,6 @@ export function PracticeCard({ item, updateSaved, onResult }) {
       ? <>AI-generated suggestion · {present(turn.explanation)}</>
       : turn.status === 'daily_limit' ? 'Daily tutor allowance reached. Your stored explanation is still available.'
         : 'AI explanation unavailable.'}</p>)}
-    <button className="quiet" onClick={() => {setReportError('');reportDialog.current.showModal()}}>Report a problem</button>
     <dialog ref={reportDialog} className="study-dialog" aria-labelledby={'report-'+item.id}>
     <h3 id={'report-'+item.id}>Report a problem</h3>
     <form className="hybrid-report" onSubmit={event => {

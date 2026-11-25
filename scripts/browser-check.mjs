@@ -254,7 +254,7 @@ try {
   assert.equal(await page.locator('.answer-choice[data-state=correct]').count(),0)
   await page.getByRole('button',{name:'Check answer',exact:true}).click()
   await page.getByText('Incorrect',{exact:true}).waitFor()
-  assert.equal(await answerCard('The clerks').count(),0)
+  assert.equal(await answerCard('The clerks').getAttribute('data-state'),'incorrect')
   await page.getByText('One clerk is singular. The clerks refers to more than one.').waitFor()
   if (process.env.STUDY_CAPTURE_PREFIX) {
     await page.locator('.concept-lab').filter({has:page.getByText('Incorrect',{exact:true})})
@@ -265,7 +265,7 @@ try {
   await page.getByRole('button',{name:'Check answer',exact:true}).click()
   await page.getByText('Correct! Well done.',{exact:true}).waitFor()
   assert.equal(await page.locator('.answer-choice[data-state=incorrect]').count(),0)
-  assert.equal(await page.locator('.answer-choice[data-state=correct]').count(),0)
+  assert.equal(await page.locator('.answer-choice[data-state=correct]').count(),1)
   if (process.env.STUDY_CAPTURE_PREFIX) {
     await page.locator('.concept-lab').filter({has:page.getByText('Correct! Well done.',{exact:true})})
       .screenshot({path:process.env.STUDY_CAPTURE_PREFIX+'-correct.png'})
@@ -397,6 +397,7 @@ try {
   await page.getByLabel('Tutor help').selectOption('steps')
   await page.getByRole('button',{name:'Request AI explanation'}).click()
   await page.getByText(/Daily tutor allowance reached/).waitFor()
+  await page.getByText('Question options',{exact:true}).click()
   await page.getByRole('button', { name: 'Bookmark', exact: true }).click()
   await page.getByRole('button', { name: 'Remove bookmark' }).waitFor()
   await page.getByRole('button',{name:'Report a problem',exact:true}).click()

@@ -57,7 +57,7 @@ export default function CuratedSkill({ skill, subject, continuePractice, onProgr
       {waiting && <p>Retention check available {new Date(item.due).toLocaleString()}.</p>}
       {item.stage === 6 && <p>{item.mastered ? 'Skill mastered after an independent retention check.' :
         'Path completed. More independent assessment evidence is needed for mastery.'}</p>}
-      {!result && !waiting && item.options && <>
+      {!waiting && item.options && <>
         <AnswerChoices name={'skill-'+skill} options={item.options.map((text,id) => ({id,text}))}
           prompt={<MathText text={item.prompt} />} value={choice} onChange={setChoice}
           disabled={busy || !!result} correct={result?.correct_choice} />

@@ -1,6 +1,7 @@
 import { useQuestionEvents } from './question-events'
 import React, { useState } from 'react'
 import { AnswerFeedback } from './AnswerFeedback'
+import { ExamTip } from './LearningPresentation'
 import MathText from './MathText'
 import PracticeResponse from './PracticeResponse'
 import { equivalentNumber, rational } from './practice-response.mjs'
@@ -38,7 +39,7 @@ export default function AdultPractice({ concept, exercises, reason, onNextConcep
       <AnswerFeedback correct={result} submitted={response} answer={problem.answer}>
         <h4>Worked solution</h4>
         <ol>{problem.steps.map((step,index) => <li key={index}><MathText text={step} /></li>)}</ol>
-        <aside className="lesson-tip"><strong>Exam tip</strong><p><MathText text={problem.mistake} /></p></aside>
+        {problem.mistake && <ExamTip><MathText text={problem.mistake} /></ExamTip>}
       </AnswerFeedback>
       <div className="actions">
         {onNextConcept && <button className={index+1 === exercises.length ? 'primary' : 'quiet'} onClick={()=>{events.record('completed');onNextConcept()}}>Next concept</button>}

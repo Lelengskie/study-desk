@@ -491,3 +491,11 @@ select { appearance: none; border: 1px solid #c9d2e7; padding-inline-end: 2.1rem
   .sidebar nav button { flex-direction: column; flex-wrap: nowrap; gap: .2rem; min-height: 46px; font-size: clamp(.65rem, 2.5vw, .76rem); }
   .sidebar nav button svg { width: 16px; height: 16px; }
 }
+
+.lesson-tip strong { display: flex; gap: .45rem; align-items: center; }
+.lesson-tip svg { color: #a85508; }
+.question-options { margin-block: 0 .8rem; color: #344e77; }
+.question-options summary { cursor: pointer; width: fit-content; min-height: 30px; }
+.question-option-list { padding: .55rem .75rem; border: 1px solid #dce4f0; border-radius: .7rem; background: #f4f7fc; }
+.question-option-list .quiet { text-align: left; }
+.lesson-question .answer-choices:disabled { opacity: 1; }
