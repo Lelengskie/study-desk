@@ -40,6 +40,9 @@ export const curriculum = {
 export const independentlyTestedSkills = new Set([
   'civil-rights','public-ethics','verbal-evidence','verbal-context','verbal-tenses','analytical-analogy','analytical-classification',
   'analytical-evidence','filipino-reading','clerical-secondary',
+  'grammar','data-interpretation','filipino','clerical','verbal-antonyms','analytical-letter-patterns','filipino-usage',
+  'clerical-indexing','verbal-main-idea','verbal-pronouns','filipino-synonyms','filipino-antonyms',
+  'analytical-assumptions','clerical-numeric','clerical-transcription',
 ])
 
 export const extraSkills = {
@@ -70,7 +73,7 @@ export const extraSkills = {
 
 export const curatedTitles = {
   ...Object.fromEntries(Object.entries(extraSkills).map(([id, [, title]]) => [id, title])),
-  grammar: 'Subject–verb agreement',
+  grammar: 'Subjectâ€“verb agreement',
   filipino: 'Pahiwatig sa konteksto',
   'data-interpretation': 'Conditions and sufficient evidence',
   constitution: 'Constitutional conditions and safeguards',
