@@ -67,15 +67,15 @@ export default function MathPath({ initialConcept = 'signed', openImported, onCo
     </>}
     <h3>{entry.title}</h3>
     <p>{lastSeed-firstSeed+1} generated practice variations</p>
-    <FoundationGuide key={concept} concept={concept} />
-    <details key={concept} className="concept-worked">
+    <FoundationGuide key={'guide-' + concept} concept={concept} />
+    <details key={'example-' + concept} className="concept-worked">
       <summary>Understand the concept with a worked example</summary>
       <p><MathText text={example.question} /></p>
       <ol>{example.steps.map(step => <li key={step}><MathText text={step} /></li>)}</ol>
       <p>Common mistake: {example.mistake}</p>
     </details>
     <h3>Try it independently</h3>
-    {sync !== 'loading' && <Variation key={concept} concept={concept} entry={entry} state={state}
+    {sync !== 'loading' && <Variation key={'variation-' + concept} concept={concept} entry={entry} state={state}
       sync={sync} refresh={refresh} />}
     <div className="actions">
       {openImported && <button className="secondary" onClick={() => openImported(concept)}>Open imported practice</button>}
