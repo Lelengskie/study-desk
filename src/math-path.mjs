@@ -1,3 +1,4 @@
+export const analyticalConcepts = new Set(['sequence', 'venn', 'syllogism', 'arrangement', 'sufficiency'])
 export const firstSeed = 2
 export const lastSeed = 999
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { client, rpc } from './api'
 import PracticeResponse from './PracticeResponse'
+import MathText from './MathText'
 import { equivalentNumber } from './practice-response.mjs'
 
 const statuses = {
@@ -119,7 +120,7 @@ export default function Hybrid({ library, track, modules, initialTopic = '', ini
           target="_blank" rel="noopener noreferrer">{item.role?.includes('archive download')
             ? 'Open source ZIP in Drive' : 'Open in Google Drive'}</a>
       </article> : <details className="surface hybrid-card" key={item.id}>
-        <summary>{item.stem} <small>{statuses[item.status]}</small></summary>
+        <summary>{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem} <small>{statuses[item.status]}</small></summary>
         <PracticeCard item={item} updateSaved={updateSaved} />
       </details>)}
       <div className="actions">
@@ -164,13 +165,13 @@ function PracticeCard({ item, updateSaved }) {
   const verified = item.status === 'independently_verified'
   const modelAnswer = answer?.answer_text ?? answer?.answer
   return <article className="hybrid-practice-card">
-    <h2>{item.stem}</h2><p>{statuses[item.status]}</p>
-    {typed ? (context ? <PracticeResponse item={context} response={choice} change={setChoice} /> :
+    <h2>{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem}</h2><p>{statuses[item.status]}</p>
+    {typed ? (context ? <PracticeResponse item={context} math={item.subject === 'Numerical Ability'} response={choice} change={setChoice} /> :
       <p role="status">Loading question context…</p>) :
       <fieldset className="hybrid-options"><legend>Choose an answer</legend>
       {options.map(option => <label key={option.id ?? option.label}>
         <input type="radio" name={'practice-' + item.id} checked={choice === (option.id ?? option.label)}
-          onChange={() => setChoice(option.id ?? option.label)} /> {option.text}
+          onChange={() => setChoice(option.id ?? option.label)} /> {item.subject === 'Numerical Ability' ? <MathText text={option.text} /> : option.text}
       </label>)}</fieldset>}
     <div className="actions hybrid-actions">
       <button className="secondary" disabled={!choice.trim() || busy || (typed && !context)} onClick={() => act(async () => {

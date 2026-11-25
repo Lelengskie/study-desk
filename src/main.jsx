@@ -6,15 +6,16 @@ import Hybrid from './Hybrid'
 import ConceptLab from './ConceptLab'
 import MathPath from './MathPath'
 import Journey from './Journey'
-import { mathPath } from './math-path.mjs'
+import { analyticalConcepts, mathPath } from './math-path.mjs'
 import { conceptState, dailyConcepts } from './concept-progress.mjs'
 import './style.css'
 
 const stages = [
+  { id: 'today', title: 'Study Today', icon: '☀' },
   { id: 'learn', title: 'Learn', icon: '▤' },
   { id: 'quiz', title: 'Quiz', icon: '◈' },
-  { id: 'master', title: 'Master', icon: '◉' },
-  { id: 'repeat', title: 'Repeat', icon: '↻' },
+  { id: 'master', title: 'My Progress', icon: '◉' },
+  { id: 'repeat', title: 'Review', icon: '↻' },
   { id: 'library', title: 'Library', icon: '▥' },
   { id: 'practice', title: 'Practice', icon: '◇' }
 ]
@@ -215,10 +216,11 @@ function Desk({ email, profileId }) {
   const [practiceSubject, setPracticeSubject] = useState('')
   const [journeySubject, setJourneySubject] = useState(null)
   const [topicCounts, setTopicCounts] = useState({})
+  const [subjectCounts, setSubjectCounts] = useState(null)
   const [catalog, setCatalog] = useState(null)
   const [progress, setProgress] = useState(emptyProgress)
   const [track, setTrack] = useState(() => localStorage.getItem('reviewer-track') === 'subprofessional' ? 'subprofessional' : 'professional')
-  const [tab, setTab] = useState('learn')
+  const [tab, setTab] = useState('today')
   const [pathStart, setPathStart] = useState(null)
   const [conceptRows, setConceptRows] = useState([])
   const [detail, setDetail] = useState(null)
@@ -279,6 +281,10 @@ function Desk({ email, profileId }) {
     rpc('hybrid_topic_counts', { exam_level: track }).then(rows => {
       if (active) setTopicCounts(Object.fromEntries(rows.map(row => [row.topic, row])))
     }).catch(() => {})
+    setSubjectCounts(null)
+    rpc('v21_subject_counts', { exam_level: track }).then(rows => {
+      if (active) setSubjectCounts(rows)
+    }).catch(() => {})
     return () => { active = false }
   }, [track])
 
@@ -332,7 +338,8 @@ function Desk({ email, profileId }) {
     window.scrollTo(0, 0)
   }
   const page = {
-    learn: ['Your study plan', 'Read a lesson, then apply it in a short quiz.'],
+    today: ['Your study plan', 'Continue a guided lesson or complete a scheduled review.'],
+    learn: ['Learn by subject', 'Follow a roadmap or choose the concept you want to understand.'],
     quiz: ['Practice by topic', 'Choose a topic and get a verified explanation after each answer.'],
     master: ['Your mastery', 'A topic is mastered at 80% accuracy across at least three distinct questions and two sessions.'],
     repeat: ['Spaced review', 'Review guided concepts and verified questions when they are due.']
@@ -359,7 +366,10 @@ function Desk({ email, profileId }) {
       {error && <p role="alert" className="notice error">{error}</p>}
       {pathStart ? <>
         <button className="quiet back" onClick={() => setPathStart(null)}>Back to {tab === 'repeat' ? 'reviews' : journeySubject || 'study plan'}</button>
-        <MathPath key={pathStart} initialConcept={pathStart} />
+        <MathPath key={pathStart} initialConcept={pathStart} openImported={concept => {
+          navigate('practice')
+          setPracticeSubject(analyticalConcepts.has(concept) ? 'Analytical Ability' : 'Numerical Ability')
+        }} />
       </> : flow ? <>
         <button className="quiet back" onClick={() => { setFlow(null); setError('') }}>End session</button>
         <QuestionFlow key={flow.key} {...flow} finish={() => navigate('master')} refresh={refresh} />
@@ -382,7 +392,7 @@ function Desk({ email, profileId }) {
         <ConceptLab topic={detail.id} />
       </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track + practiceTopic + practiceSubject} library={tab === 'library'} track={track} modules={catalog} initialTopic={practiceTopic} initialSubject={practiceSubject} /> : <>
         <header className="page-head"><h1>{page[0]}</h1><p>{page[1]}</p></header>
-        {tab === 'learn' && !journeySubject && <section className="surface concept-lab">
+        {tab === 'today' && <section className="surface concept-lab">
           <h2>Study today</h2>
           <p>{conceptDue.length || due.length ? 'Start with a due review, then continue your learning pathway.'
             : 'Start with a short guided exercise. Use a hint whenever you need help.'}</p>
@@ -408,9 +418,9 @@ function Desk({ email, profileId }) {
           <div className="actions">{conceptDue.map(id => <button className="secondary" key={id} onClick={() => openPath(id)}>
             Review {mathPath[id].title.toLowerCase()}</button>)}</div>
         </section>}
-        {tab === 'learn' && <Journey profileId={profileId} groups={groups} modules={modules} progress={progress}
-          attempts={conceptRows} topicCounts={topicCounts} states={states} recommendations={recommendations} subject={journeySubject}
-          chooseSubject={chooseJourneySubject} openLesson={openLesson} openPath={openPath}
+        {['today','learn','master'].includes(tab) && <Journey view={tab} profileId={profileId} groups={groups} modules={modules} progress={progress}
+          attempts={conceptRows} topicCounts={topicCounts} subjectCounts={subjectCounts} states={states} recommendations={recommendations} subject={journeySubject}
+          chooseSubject={chooseJourneySubject} openLearn={() => navigate('learn')} openLesson={openLesson} openPath={openPath}
           openQuiz={() => navigate('quiz')} openPractice={subject => {
             navigate('practice')
             setPracticeSubject(subject)

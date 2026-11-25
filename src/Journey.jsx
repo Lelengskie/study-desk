@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
-import { mathPath } from './math-path.mjs'
+import React, { useEffect, useState } from 'react'
+import { rpc } from './api'
+import { analyticalConcepts as analytical, mathPath } from './math-path.mjs'
 import { activeStudyDays, journeyRewards } from './journey-progress.mjs'
 
 const subjects = {
@@ -27,7 +28,6 @@ const reviewerPath = {
   environment: { stage: 2 },
 }
 const progression = ['Foundation', 'Develop', 'Apply']
-const analytical = new Set(['sequence', 'venn', 'syllogism', 'arrangement', 'sufficiency'])
 const dayLabel = new Intl.DateTimeFormat(undefined, { weekday: 'short', timeZone: 'UTC' })
 const fullDayLabel = new Intl.DateTimeFormat(undefined, { dateStyle: 'long', timeZone: 'UTC' })
 const weeklyGoals = [2, 3, 4, 5, 6, 7]
@@ -45,7 +45,7 @@ function SubjectProgress({ label, count, total }) {
 }
 
 export default function Journey({
-  profileId, groups, modules, progress, attempts, topicCounts, states, recommendations, subject, chooseSubject, openLesson, openPath, openQuiz, openPractice,
+  view, profileId, groups, modules, progress, attempts, topicCounts, subjectCounts, states, recommendations, subject, chooseSubject, openLearn, openLesson, openPath, openQuiz, openPractice,
 }) {
   const goalKey = 'study-desk:weekly-goal:' + profileId
   const [goal, setGoal] = useState(() => {
@@ -54,6 +54,33 @@ export default function Journey({
       return weeklyGoals.includes(saved) ? saved : 3
     } catch { return 3 }
   })
+  const [savingGoal, setSavingGoal] = useState(true)
+  const [goalNotice, setGoalNotice] = useState('')
+  useEffect(() => {
+    let active = true
+    rpc('v21_weekly_goal').then(value => {
+      if (active && weeklyGoals.includes(value)) setGoal(value)
+    }).catch(() => {
+      if (active) setGoalNotice('Account sync is unavailable. Your browser goal is still available.')
+    }).finally(() => { if (active) setSavingGoal(false) })
+    return () => { active = false }
+  }, [profileId])
+
+  async function changeGoal(event) {
+    const choice = Number(event.target.value)
+    setGoal(choice)
+    setSavingGoal(true)
+    setGoalNotice('')
+    try {
+      await rpc('v21_weekly_goal', { new_goal: choice })
+    } catch {
+      setGoalNotice('Goal saved in this browser. Account sync is unavailable.')
+    } finally {
+      try { localStorage.setItem(goalKey, String(choice)) } catch { /* optional browser copy */ }
+      setSavingGoal(false)
+    }
+  }
+
   const activity = activeStudyDays(attempts)
   const rewards = journeyRewards(attempts, states, progress.completed.length,
     Object.values(progress.mastery).filter(stat => stat.mastered).length)
@@ -134,14 +161,18 @@ export default function Journey({
   }
 
   return <>
-    <section className="journey-subjects" aria-labelledby="journey-subjects">
+    {view === 'learn' && <section className="journey-subjects" aria-labelledby="journey-subjects">
       <h2 id="journey-subjects">Explore subjects</h2>
       <div className="journey-grid">{groups.filter(name => subjects[name]).map(name => {
         const theme = subjects[name]
         const data = subjectData(name)
+        const coverage = subjectCounts?.find(row => row.subject === name)
         return <article className={'surface journey-subject journey-' + theme.color} key={name}>
           <span aria-hidden="true" className="journey-icon">{theme.icon}</span>
           <h3>{name}</h3><p>{theme.intro}</p>
+          {coverage && <p>{coverage.imported} imported · {coverage.verified} verified</p>}
+          {coverage?.subject_only > 0 && <small>{coverage.subject_only} available in subject practice while topic mapping is reviewed</small>}
+          {coverage?.imported > 0 && <button className="quiet" onClick={() => openPractice(name)}>Practice {name.toLowerCase()}</button>}
           <SubjectProgress label="Reviewer lessons completed" count={data.completed} total={data.lessons.length} />
           <SubjectProgress label="Topics and concepts mastered" count={data.mastered} total={data.lessons.length + data.concepts.length} />
           {(data.nextConcept || data.nextLesson) && <p className="journey-next">Next: {data.nextConcept ? mathPath[data.nextConcept].title : data.nextLesson.title}</p>}
@@ -152,8 +183,13 @@ export default function Journey({
           </div>
         </article>
       })}</div>
-    </section>
-    <section className="surface journey-activity">
+      {subjectCounts?.some(row => !subjects[row.subject] && row.imported > 0) && <div className="surface journey-banner">
+        <p>Additional answer-ready questions are available in All subjects while their classification is reviewed.</p>
+        <button className="secondary" onClick={() => openPractice('')}>Browse all practice</button>
+      </div>}
+    </section>}
+    {view === 'today' && <button className="secondary" onClick={openLearn}>Explore subjects</button>}
+    {view !== 'learn' && <section className="surface journey-activity">
       <div><h2>Your study rhythm</h2><p>Guided practice activity over the last seven days.</p></div>
       <ol className="journey-week">{activity.week.map(({ date, active }) =>
         <li key={date.valueOf()} data-active={active} aria-label={fullDayLabel.format(date) + (active ? ', studied' : ', no guided practice')}>
@@ -164,15 +200,14 @@ export default function Journey({
         <p><strong>{activity.streak} days</strong> <span>Current streak</span></p>
         <p><strong>{activity.weeklyDays}/{goal}</strong> <span>Study-day goal</span></p>
       </div>
-      <label className="journey-goal">Weekly goal <select value={goal} onChange={event => {
-        const choice = Number(event.target.value)
-        setGoal(choice)
-        try { localStorage.setItem(goalKey, String(choice)) } catch { /* preference remains valid for this view */ }
-      }}>{weeklyGoals.map(number => <option value={number} key={number}>{number} study days</option>)}</select></label>
+      <label className="journey-goal">Weekly goal <select value={goal} disabled={savingGoal} onChange={changeGoal}>
+        {weeklyGoals.map(number => <option value={number} key={number}>{number} study days</option>)}
+      </select></label>
+      {goalNotice && <p role="status">{goalNotice}</p>}
       <div><h3>Achievements</h3>
         {rewards.badges.length ? <ul className="journey-badges">{rewards.badges.map(name => <li key={name}>{name}</li>)}</ul>
           : <p>Complete a lesson or solve a guided exercise independently to earn your first milestone.</p>}
       </div>
-    </section>
+    </section>}
   </>
 }

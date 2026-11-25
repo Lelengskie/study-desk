@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import MathText from './MathText'
+import PracticeResponse from './PracticeResponse'
 import { rpc } from './api'
 import { firstSeed, lastSeed, mathPath } from './math-path.mjs'
 import { equivalentNumber, rational } from './practice-response.mjs'
@@ -15,7 +17,7 @@ const misconceptionPrompts = {
   possible_double_counting: 'Did you count readers in both groups twice? Place those readers in the overlap first.',
 }
 
-export default function MathPath({ initialConcept = 'signed' }) {
+export default function MathPath({ initialConcept = 'signed', openImported }) {
   const [concept, choose] = useState(initialConcept)
   const [rows, setRows] = useState([])
   const [sync, setSync] = useState('loading')
@@ -34,6 +36,9 @@ export default function MathPath({ initialConcept = 'signed' }) {
   const last = rows.filter(row => row.concept === concept).at(-1)
   const followUp = misconceptionPrompts[last?.mistake]
   const prerequisite = entry.prerequisite && mathPath[entry.prerequisite]
+  // Seed 1 is reserved for display and is outside the server's scored seed range.
+  const example = entry.generate(1)
+  const nextConcept = daily.find(id => id !== concept)
   return <section className="surface concept-lab">
     <h2>Math foundations</h2>
     <label>Concept <select value={concept} onChange={event => choose(event.target.value)}>
@@ -55,8 +60,21 @@ export default function MathPath({ initialConcept = 'signed' }) {
       </div>}
       {state.unused.length === 0 && <p>All tracked variations have been tried. You can revisit them for practice.</p>}
     </>}
+    <h3>{entry.title}</h3>
+    <details key={concept} className="concept-worked">
+      <summary>Understand the concept with a worked example</summary>
+      <p><MathText text={example.question} /></p>
+      <ol>{example.steps.map(step => <li key={step}>{step}</li>)}</ol>
+      <p>Common mistake: {example.mistake}</p>
+    </details>
+    <h3>Try it independently</h3>
     {sync !== 'loading' && <Variation key={concept} concept={concept} entry={entry} state={state}
       sync={sync} refresh={refresh} />}
+    <div className="actions">
+      {openImported && <button className="secondary" onClick={() => openImported(concept)}>Browse imported questions for this subject</button>}
+      {nextConcept && <button className="secondary" onClick={() => choose(nextConcept)}>
+        Continue to {mathPath[nextConcept].title.toLowerCase()}</button>}
+    </div>
   </section>
 }
 
@@ -94,9 +112,12 @@ function Variation({ concept, entry, state, sync, refresh }) {
   }
 
   return <>
-    <p>{problem.question}</p>
+    <p><MathText text={problem.question} /></p>
     <form onSubmit={check}>
-      <label>Your calculation <input required disabled={busy} value={response} onChange={event => { change(event.target.value); show('') }} /></label>
+      <fieldset disabled={busy} className="math-input-group">
+        <PracticeResponse item={{}} math inputLabel="Your calculation" response={response}
+          change={value => { change(value); show('') }} />
+      </fieldset>
       <div className="actions">
         <button className="primary" disabled={busy}>Check my calculation</button>
         <button type="button" className="secondary" disabled={busy || revealed >= problem.steps.length}

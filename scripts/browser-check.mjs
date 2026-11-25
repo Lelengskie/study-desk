@@ -44,6 +44,7 @@ try {
   const typed = { ...unscored, id: 'b'.repeat(64), stem: 'What is half of one?', options: [] }
   const selfCheck = { ...typed, id: 'c'.repeat(64), stem: 'Reword the sentence in your own words.' }
   const conceptAttempts = []
+  let weeklyGoal = null
   await page.route(fakeUrl + '/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     const method = route.request().method()
@@ -76,6 +77,13 @@ try {
       return send({ answer: 'A', status: unscored.status })
     }
     if (path.endsWith('/hybrid_feedback')) return send(null)
+    if (path.endsWith('/v21_weekly_goal')) {
+      weeklyGoal = route.request().postDataJSON()?.new_goal ?? weeklyGoal
+      return send(weeklyGoal)
+    }
+    if (path.endsWith('/v21_subject_counts')) return send([
+      { subject: 'Numerical Ability', imported: 35, verified: 12, subject_only: 30 }
+    ])
     if (path.endsWith('/v2_concept_progress')) return send(conceptAttempts)
     if (path.endsWith('/v2_concept_attempt')) {
       const attempt = route.request().postDataJSON()
@@ -132,11 +140,18 @@ try {
   await page.getByRole('heading', { name: 'Math foundations' }).waitFor()
   assert.equal(await page.getByLabel('Concept').inputValue(), 'signed')
   await page.getByRole('button', { name: 'Back to study plan' }).click()
+  await page.getByRole('button', { name: 'Explore subjects' }).click()
   await page.getByRole('heading', { name: 'Explore subjects' }).waitFor()
+  await page.getByText('35 imported · 12 verified').waitFor()
+  await page.getByRole('button', { name: 'Study Today', exact: true }).click()
   await page.getByLabel('Weekly goal').selectOption('5')
+  await page.waitForFunction(() => !document.querySelector('.journey-goal select').disabled)
   await page.reload()
+  await page.getByRole('button', { name: 'Explore subjects' }).click()
   await page.getByRole('heading', { name: 'Explore subjects' }).waitFor()
+  await page.getByRole('button', { name: 'Study Today', exact: true }).click()
   assert.equal(await page.getByLabel('Weekly goal').inputValue(), '5')
+  await page.getByRole('button', { name: 'Explore subjects' }).click()
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
   await page.getByRole('button', { name: 'Open Numerical Ability roadmap' }).click()
   await page.getByRole('heading', { name: 'Foundation', level: 3 }).waitFor()
@@ -169,6 +184,17 @@ try {
   const pathway = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Math foundations' }) })
   await pathway.getByLabel('Concept').selectOption('percent')
   await pathway.getByRole('button', { name: 'Review decimals and place value' }).click()
+  await pathway.getByText('Math keypad', { exact: true }).click()
+  for (const key of ['1', '/', '4']) await pathway.getByRole('button', { name: key, exact: true }).click()
+  assert.equal(await pathway.locator('math mfrac').count(), 1)
+  for (const [value, selector] of [
+    ['(-1/2)/(3/4)', 'mfrac mfrac'], ['2 1/3','mfrac'], ['-3/4','mfrac'], ['2^3','msup'], ['√9','msqrt'],
+  ]) {
+    await pathway.getByLabel('Your calculation').fill(value)
+    assert.ok(await pathway.locator('math ' + selector).count(), value)
+  }
+  await pathway.getByLabel('Your calculation').fill('12/25/2026')
+  assert.equal(await pathway.locator('math').count(), 0)
   await pathway.getByLabel('Your calculation').fill('1/4')
   await pathway.getByRole('button', { name: 'Check my calculation' }).click()
   await pathway.getByText('Correct.', { exact: true }).waitFor()
@@ -177,7 +203,9 @@ try {
   assert.equal(await pathway.getByLabel('Your calculation').inputValue(), '')
   await page.getByRole('button', { name: 'Back to lessons' }).click()
   await page.getByRole('button', { name: 'Back to subjects' }).click()
+  await page.getByRole('button', { name: 'Study Today', exact: true }).click()
   await page.getByText('Independent problem solver', { exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Explore subjects' }).click()
   await page.getByRole('button', { name: 'Open Analytical Ability roadmap' }).click()
   await page.getByRole('button', { name: 'Open lesson: Check a conclusion' }).click()
   await page.getByRole('heading', { name: 'Test a conclusion with a counterexample' }).waitFor()
@@ -245,7 +273,7 @@ try {
   await page.getByRole('button', { name: 'View mastery' }).click()
   await page.getByRole('heading', { name: 'Your mastery' }).waitFor()
   await page.getByText('100% · 1 of 1 correct').waitFor()
-  await page.getByRole('button', { name: /Repeat/ }).click()
+  await page.getByRole('button', { name: /^Review/ }).click()
   await page.getByRole('button', { name: 'Start due reviews' }).click()
   await page.getByRole('heading', { name: 'What comes after 3, 6, 9?' }).waitFor()
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)

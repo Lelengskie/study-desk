@@ -302,3 +302,8 @@ progress { display: block; width: 100%; height: .55rem; accent-color: var(--acce
 }
 .journey-stage h3, .journey-stage h4 { margin-block-end: .45rem; }
 .journey-prerequisite { display: block; }
+.math-input-group { margin: 0; padding: 0; border: 0; min-width: 0; }
+.math-keypad { margin-block: .6rem; }
+.math-keypad summary { cursor: pointer; }
+.math-keypad > div { display:grid; grid-template-columns:repeat(auto-fit,minmax(3.3rem,1fr)); gap:.3rem; margin-block:.5rem; }
+.math-keypad button { padding:.3rem; overflow-wrap:anywhere; }
