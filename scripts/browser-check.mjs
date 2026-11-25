@@ -88,6 +88,12 @@ try {
       if (value.chosen === 0) curatedStage++
       return send({correct:value.chosen===0,correct_choice:0,feedback:'One clerk is singular. The clerks refers to more than one.'})
     }
+    if (path.endsWith('/learning_next_scoped')) {
+      const {study_topics,study_band}=route.request().postDataJSON()
+      if (!study_topics.includes('concept:fractions')) return send(null)
+      requestedBands.push(study_band)
+      return send(unscored)
+    }
     if (path.endsWith('/learning_next')) {
       const {completed_id,study_topics,study_band} = route.request().postDataJSON() ?? {}
       if (study_topics?.includes('concept:fractions')) requestedBands.push(study_band)
@@ -180,7 +186,9 @@ try {
   await page.getByRole('button', { name: 'Continue learning: addition and subtraction' }).click()
   await page.getByRole('heading', { name: 'Math foundations' }).waitFor()
   assert.equal(await page.getByLabel('Concept').inputValue(), 'basic-arithmetic')
-  await page.getByLabel('Your calculation').fill('13')
+  await page.getByText(/Generated Learning Exercise · Beginner/).waitFor()
+  assert.equal(await page.getByText(/A shelf starts with/).count(),0)
+  await page.getByLabel('Your calculation').fill('1757')
   await page.getByRole('button',{name:'Check my calculation'}).click()
   await page.getByText('Correct! Well done.',{exact:true}).waitFor()
   await page.getByRole('heading',{name:/Worked solution · Step 1/}).waitFor()
@@ -201,9 +209,10 @@ try {
 
   await page.getByLabel('Concept').selectOption('fractions')
   assert.equal(await page.getByRole('heading',{name:'Explore fraction skills',exact:true}).count(),1)
+  await page.getByText('Original CSE Reviewer · Unscored learning practice',{exact:true}).waitFor()
   await page.getByLabel('Reviewer difficulty').selectOption('advanced')
-  await page.getByRole('button',{name:'Apply with original reviewer questions',exact:true}).click()
   await page.getByRole('heading',{name:'Which option is the source value?',exact:true}).waitFor()
+  await page.waitForFunction(()=>document.body.textContent.includes('Which option is the source value?'))
   assert.equal(requestedBands.at(-1),'advanced')
   await page.getByRole('button',{name:'Return to guided exercise',exact:true}).click()
 
@@ -292,6 +301,7 @@ try {
   const pathway = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Math foundations' }) })
   await pathway.getByLabel('Concept').selectOption('percent')
   await pathway.getByRole('button', { name: 'Review decimals and place value' }).click()
+  await pathway.getByRole('button',{name:'Start optional foundation exercise'}).click()
   await pathway.getByText('Math keypad', { exact: true }).click()
   for (const key of ['1', '/', '4']) await pathway.getByRole('button', { name: key, exact: true }).click()
   const preview = pathway.locator('p').filter({has:page.getByText('Math preview',{exact:false})})

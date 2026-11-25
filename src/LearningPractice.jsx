@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { rpc } from './api'
 import { PracticeCard } from './Hybrid'
 
-export default function LearningPractice({ subject, track, topics, onFinish, onCheckpoint, band }) {
+export default function LearningPractice({ subject, track, topics, onFinish, onCheckpoint, band, exactScope = false, onEmpty, hideWhenEmpty = false }) {
   const [item, setItem] = useState(null)
   const [result, setResult] = useState(null)
   const [correctCount, setCorrectCount] = useState(0)
@@ -17,9 +17,10 @@ export default function LearningPractice({ subject, track, topics, onFinish, onC
     setBusy(true)
     setError('')
     try {
-      const row = await rpc('learning_next', { study_subject: subject, exam_level: track,
+      const row = await rpc(exactScope ? 'learning_next_scoped' : 'learning_next', { study_subject: subject, exam_level: track,
         study_topics: topics.filter(Boolean), completed_id: completed, study_band: band ?? 'beginner' })
       if (!mounted.current) return
+      if (!row && onEmpty) {onEmpty(); return}
       setItem(row)
       setResult(row ? null : 'finished')
     } catch {
@@ -49,11 +50,12 @@ export default function LearningPractice({ subject, track, topics, onFinish, onC
     return () => { mounted.current = false }
   }, [])
 
+  if (hideWhenEmpty && result === 'finished') return null
   const checkpoint = result === true && correctCount >= 2 && onCheckpoint
   return <section className="surface concept-lab">
     <h2>Apply what you learned</h2>
     {busy && <p role="status">Finding the next question…</p>}
-    {item && <><p>{item.related ? 'Related subject practice' : 'Practice for this lesson'}</p>
+    {item && <><p className="small muted">Original CSE Reviewer · Unscored learning practice</p><p>{item.related ? 'Related subject practice' : 'Practice for this lesson'}</p>
       <PracticeCard key={item.id} item={item}
         updateSaved={(id,saved) => setItem(current => current?.id === id ? { ...current, saved } : current)}
         onResult={value => {

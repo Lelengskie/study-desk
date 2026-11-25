@@ -1,3 +1,6 @@
+import AdultPractice from './AdultPractice'
+import { adultExercises } from './adult-exercises.mjs'
+import { templateQuality } from './template-quality.mjs'
 import { AnswerFeedback } from './AnswerFeedback'
 import React, { useCallback, useEffect, useState } from 'react'
 import MathText from './MathText'
@@ -26,13 +29,15 @@ const pathwayOrder = [...new Set([...startingOrder,...Object.keys(mathPath)])]
 const difficultyOptions = ['foundation','beginner','intermediate','advanced','examination']
 
 export default function MathPath({ initialConcept = 'signed', renderPractice, importedCoverage, onConceptChange }) {
-  const [application, setApplication] = useState(false)
+  const [application, setApplication] = useState(true)
+  const [foundation, setFoundation] = useState(false)
   const [remedy, setRemedy] = useState(false)
   const [assessment,setAssessment] = useState(false)
   const [selectedBand, setSelectedBand] = useState('')
   const [concept, setConcept] = useState(initialConcept)
   function choose(id) {
-    setApplication(false)
+    setApplication(true)
+    setFoundation(false)
     setAssessment(false)
     setSelectedBand('')
     setRemedy(false)
@@ -65,10 +70,14 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
   const coverage = importedCoverage?.(concept)
   // Current generators have one or two authored structures. Never infer advanced readiness from numeric substitutions.
   const band = learningBand(rows.filter(row => row.concept === concept),state.retained,1)
-  const applying = application
+  const applying = application && !assessment && Boolean(renderPractice)
+  const exercises = adultExercises[concept]
+  const hasLegacy = templateQuality[concept] !== 'retired'
+  const adultCheck = assessment && Boolean(exercises)
   function reviewFoundation() {
     setApplication(false)
     setRemedy(true)
+    setFoundation(hasLegacy && !exercises)
   }
   return <section className="surface concept-lab">
     <h2>Math foundations</h2>
@@ -95,12 +104,12 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
     <nav className="actions" aria-label="Lesson navigation">
       {previousConcept && <button className="secondary" onClick={() => choose(previousConcept)}>Previous concept</button>}
       {nextConcept && <button className="secondary" onClick={() => choose(nextConcept)}>Skip concept</button>}
-      <button className="secondary" onClick={() => {setApplication(false);setAssessment(value=>!value)}}>
-        {assessment ? 'Return to lesson' : 'Test my knowledge'}</button>
+      {(hasLegacy || exercises) && <button className="secondary" onClick={() => {setApplication(false);setFoundation(false);setAssessment(value=>!value)}}>
+        {assessment ? 'Return to lesson' : 'Test my knowledge'}</button>}
     </nav>
-    <p>{lastSeed-firstSeed+1} generated practice variations{sync === 'ready' && ' · ' + state.unused.length + ' without a recorded attempt'}</p>
+    {foundation && <p>{lastSeed-firstSeed+1} optional practice variants</p>}
     {coverage && <p>{coverage.imported} imported questions linked to this concept</p>}
-    {!assessment && <>
+    {!assessment && hasLegacy && <>
     <FoundationGuide key={'guide-' + concept} concept={concept} />
     <details key={'example-' + concept} className="concept-worked">
       <summary>Understand the concept with a worked example</summary>
@@ -121,12 +130,19 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
       <button className="secondary" onClick={() => setApplication(value=>!value)}>
         {applying ? 'Return to guided exercise' : 'Apply with original reviewer questions'}</button>
     </div>}
-    {!applying && <h3>{assessment ? 'Independent knowledge check' : state.dueNow && state.unused.length > 0 ? 'Check what you remember' : 'Try it independently'}</h3>}
-    {sync !== 'loading' && !applying && <Variation key={'variation-' + concept + '-' + assessment} concept={concept} assessment={assessment} entry={entry} state={state}
+    {!applying && !foundation && exercises && <AdultPractice key={concept + assessment} exercises={exercises}
+      onNextConcept={nextConcept ? () => choose(nextConcept) : null} />}
+    {!applying && !assessment && !foundation && !exercises && <p>No unused concept-matched reviewer question is available. {hasLegacy ? 'Study the example, choose targeted practice, or move to the next concept.' : 'You can continue to the next concept.'}</p>}
+    {!assessment && hasLegacy && !foundation && <button className="secondary" onClick={() => {
+      setApplication(false);setFoundation(true)
+    }}>{templateQuality[concept] === 'foundation' ? 'Start optional foundation exercise' : 'Start targeted generated exercise'}</button>}
+    {!applying && (assessment || foundation) && <h3>{assessment ? 'Independent knowledge check' : state.dueNow && state.unused.length > 0 ? 'Check what you remember' : 'Try it independently'}</h3>}
+    {sync !== 'loading' && !applying && !adultCheck && (assessment || foundation) && <Variation
+      key={'variation-' + concept + '-' + assessment} concept={concept} assessment={assessment} entry={entry} state={state}
       sync={sync} refresh={refresh} onNextConcept={nextConcept ? () => choose(nextConcept) : null}
-      onOriginalPractice={!assessment && coverage?.imported ? () => setApplication(true) : null} /> }
-    {applying && renderPractice?.(concept,reviewFoundation,selectedBand || band)}
-    {applying && nextConcept && <button className="primary" onClick={() => choose(nextConcept)}>Next concept</button>}
+      onOriginalPractice={!assessment && coverage?.imported ? () => {setFoundation(false);setApplication(true)} : null} />}
+    {applying && renderPractice?.(concept,reviewFoundation,selectedBand || band,() => setApplication(false))}
+    {nextConcept && (applying || !exercises && !assessment && !foundation) && <button className="secondary" onClick={() => choose(nextConcept)}>Next concept</button>}
   </section>
 }
 
@@ -166,6 +182,7 @@ function Variation({ concept, entry, state, sync, refresh, assessment, onNextCon
   }
 
   return <>
+    <p className="small muted">{templateQuality[concept] === 'foundation' ? 'Foundation Exercise' : 'Generated Learning Exercise'}</p>
     <p className="answer-prompt"><MathText text={problem.question} /></p>
     <form onSubmit={check}>
       <fieldset disabled={busy || graded !== null} className="math-input-group">

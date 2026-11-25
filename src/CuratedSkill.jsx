@@ -5,7 +5,7 @@ import { rpc } from './api'
 
 const labels = ['Foundation', 'Beginner', 'Intermediate', 'Advanced', 'Examination', 'Retention']
 
-export default function CuratedSkill({ skill, subject, continuePractice, onProgress, onNextConcept, onPreviousConcept, onTest }) {
+export default function CuratedSkill({ skill, subject, continuePractice, onProgress, onNextConcept, onPreviousConcept, onTest, reviewer }) {
   const [item,setItem] = useState(null)
   const [choice,setChoice] = useState(null)
   const [result,setResult] = useState(null)
@@ -41,6 +41,8 @@ export default function CuratedSkill({ skill, subject, continuePractice, onProgr
         {!result && onNextConcept && <button className="secondary" onClick={onNextConcept}>Skip concept</button>}
         {onTest && <button className="secondary" onClick={onTest}>Test my knowledge</button>}
       </nav>
+      {reviewer}
+      <p className="small muted">Authored learning activity</p>
       {item.stage < 6 && <p>{labels[item.stage]}</p>}
       {waiting && <p>Retention check available {new Date(item.due).toLocaleString()}.</p>}
       {item.stage === 6 && <p>{item.mastered ? 'Skill mastered after an independent retention check.' :

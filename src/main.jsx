@@ -401,6 +401,14 @@ function Desk({ email, profileId, googleIdentity }) {
       if (module) openLesson(module)
     }
   }
+  function curatedReviewer(subject, skill) {
+    if (subject === 'General Information') return null
+    const sourceSubject = subject === 'Filipino' ? 'Verbal Ability' : subject
+    const mapped = extraSkills[skill]?.[2] ?? ({filipino:'filipino',clerical:'filing',grammar:'grammar','data-interpretation':'sufficiency'})[skill]
+    if (!mapped) return null
+    return <LearningPractice key={track + skill} track={track} subject={sourceSubject}
+      topics={['concept:'+mapped]} exactScope hideWhenEmpty />
+  }
   function curatedNavigation(subject, skill) {
     const sequence = Object.values(curriculum[subject] ?? {}).flat().filter(key => key.startsWith('@') || mathPath[key])
     const index = sequence.indexOf('@' + skill)
@@ -468,7 +476,7 @@ function Desk({ email, profileId, googleIdentity }) {
         conceptCounts={conceptCounts} />
     : embeddedPractice.topic === 'concept:filipino'
       ? <div key={track + 'filipino'}>
-          {showCurated && <CuratedSkill onProgress={refreshCurated} key="filipino" skill="filipino" subject="Filipino" {...curatedNavigation("Filipino","filipino")} continuePractice={() => {setShowCurated(false); setAdaptiveLesson(true)}} />}
+          {showCurated && <CuratedSkill onProgress={refreshCurated} key="filipino" skill="filipino" subject="Filipino" {...curatedNavigation("Filipino","filipino")} reviewer={curatedReviewer("Filipino","filipino")} continuePractice={() => {setShowCurated(false); setAdaptiveLesson(true)}} />}
           {adaptiveLesson && <LearningPractice track={track} subject="Verbal Ability"
             topics={['concept:filipino']} onFinish={() => setAdaptiveLesson(false)} />}
         </div>
@@ -500,7 +508,7 @@ function Desk({ email, profileId, googleIdentity }) {
         <ConceptTest {...conceptTest} openSkill={openCurated} />
       </> : activeSkill ? <>
         <button className="quiet back" onClick={() => {setActiveSkill(null);setEmbeddedPractice(null)}}>Back to Learn</button>
-        <CuratedSkill onProgress={refreshCurated} key={activeSkill} skill={activeSkill} subject={extraSkills[activeSkill][0]} {...curatedNavigation(extraSkills[activeSkill][0],activeSkill)}
+        <CuratedSkill onProgress={refreshCurated} key={activeSkill} skill={activeSkill} subject={extraSkills[activeSkill][0]} {...curatedNavigation(extraSkills[activeSkill][0],activeSkill)} reviewer={curatedReviewer(extraSkills[activeSkill][0],activeSkill)}
           continuePractice={() => openImported(extraSkills[activeSkill][0] === 'Filipino' ? 'Verbal Ability' : extraSkills[activeSkill][0], extraSkills[activeSkill][2])} />
         {activeSkill === 'government-branches' && <p><a href="https://officialgazette.gov.ph/constitutions/1987-constitution/"
           target="_blank" rel="noreferrer">Read Articles VI–VIII in the Official Gazette</a></p>}
@@ -512,8 +520,8 @@ function Desk({ email, profileId, googleIdentity }) {
       </> : pathStart ? <>
         <button className="quiet back" onClick={() => {setPathStart(null); setEmbeddedPractice(null)}}>Back to {tab === 'repeat' ? 'reviews' : journeySubject || 'Learn'}</button>
         <MathPath key={pathStart} initialConcept={pathStart} importedCoverage={conceptCoverage}
-          renderPractice={(concept, onFinish, band) => <LearningPractice key={track + concept + band} track={track}
-            subject={conceptCoverage(concept).subject} topics={['concept:' + concept]} band={band} onFinish={onFinish} />}
+          renderPractice={(concept, onFinish, band, onEmpty) => <LearningPractice key={track + concept + band} track={track}
+            subject={conceptCoverage(concept).subject} topics={['concept:' + concept]} band={band} onFinish={onFinish} exactScope onEmpty={onEmpty} />}
           onConceptChange={() => setEmbeddedPractice(null)} />
         {importedPanel}
       </> : flow ? <>
@@ -541,7 +549,7 @@ function Desk({ email, profileId, googleIdentity }) {
             </li>)}</ul>
           </details>}
         </article>
-        {showCurated && <CuratedSkill onProgress={refreshCurated} key={detail.id} skill={detail.id} subject={detail.track} {...curatedNavigation(detail.track,detail.id)}
+        {showCurated && <CuratedSkill onProgress={refreshCurated} key={detail.id} skill={detail.id} subject={detail.track} {...curatedNavigation(detail.track,detail.id)} reviewer={curatedReviewer(detail.track,detail.id)}
           continuePractice={() => {setShowCurated(false); continueLesson(detail)}} />}
         {!showCurated && !assessedSkills.has(detail.id) && !adaptiveLesson && hasPrimer(detail.id) && <CurriculumPrimer key={detail.id}
           concept={detail.id} onReady={() => continueLesson(detail)} />}
