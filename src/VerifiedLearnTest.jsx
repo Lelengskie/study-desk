@@ -1,3 +1,4 @@
+import MathText from './MathText'
 import React, { useEffect, useRef, useState } from 'react'
 import { rpc } from './api'
 
@@ -53,16 +54,16 @@ export default function VerifiedLearnTest({ title, modules, openLesson, finish, 
       const result = results?.[index]
       return <section key={question.id}>
         <fieldset className="options" disabled={busy || !!batch.current}>
-          <legend>{index+1}. {question.stem}</legend>
+          <legend>{index+1}. <MathText text={question.stem} /></legend>
           {question.options.map(option => <label className="option" key={option.id}>
             <input type="radio" name={question.id} checked={choices[question.id] === option.id}
-              onChange={() => setChoices(previous => ({...previous,[question.id]:option.id}))} />{option.text}
+              onChange={() => setChoices(previous => ({...previous,[question.id]:option.id}))} /><MathText text={option.text} />
           </label>)}
         </fieldset>
         {result && <div className="notice">
           <strong>{result.correct ? 'Correct' : 'Needs review'}</strong>
-          <p>Correct answer: {question.options.find(option => option.id === result.answer_option_id)?.text}</p>
-          <p>{result.explanation}</p>
+          <p>Correct answer: <MathText text={question.options.find(option => option.id === result.answer_option_id)?.text} /></p>
+          <p><MathText text={result.explanation} /></p>
         </div>}
       </section>
     })}

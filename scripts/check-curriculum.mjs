@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict'
-import { curriculum, curriculumEntry } from '../src/curriculum.mjs'
+import { curriculum, curriculumEntry, curatedTitles } from '../src/curriculum.mjs'
 import { coreNumerical } from '../src/core-numerical.mjs'
 import { mathPath } from '../src/math-path.mjs'
 
-const conditions = ['grammar','filipino','data-interpretation','constitution','clerical']
-const curated = Object.fromEntries(conditions.map(id=>[id,{mastered:true,due:true}]))
+const curated = Object.fromEntries(Object.keys(curatedTitles).map(id=>[id,{mastered:true,due:true}]))
 const summary = {}
 for (const [subject, topics] of Object.entries(curriculum)) {
   const entries = Object.values(topics).flat().map(key=>curriculumEntry(key,{},curated))

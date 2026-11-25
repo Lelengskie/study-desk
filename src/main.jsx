@@ -1,3 +1,4 @@
+import MathText from './MathText'
 
 import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -11,7 +12,7 @@ import { conceptLabel } from './concept-labels.mjs'
 import ConceptLab from './ConceptLab'
 import MathPath from './MathPath'
 import Journey from './Journey'
-import { curatedTitles } from './curriculum.mjs'
+import { curatedTitles, extraSkills } from './curriculum.mjs'
 import { analyticalConcepts, mathPath } from './math-path.mjs'
 import { conceptState, dailyConcepts } from './concept-progress.mjs'
 import './style.css'
@@ -124,11 +125,11 @@ function TutorPanel({ questionId, original }) {
       <div className="eyebrow">{statuses[round.status]}</div>
       <p className="walkthrough">{round.explanation ?? (round.skill + ' ' + original)}</p>
       {round.status === 'ai' && <p className="muted small">AI walkthroughs can contain mistakes. Use the verified quiz explanation above to check them.</p>}
-      <h4>{round.practice.stem}</h4>
+      <h4><MathText text={round.practice.stem} /></h4>
       <Options options={round.practice.options} value={selected} change={setSelected} name="practice" result={review} disabled={busy} />
       {review ? <div className="notice" role="status">
         <strong>{review.correct ? 'Correct' : 'Review this step'}</strong>
-        <p>{review.explanation}</p>
+        <p><MathText text={review.explanation} /></p>
       </div> : <button className="primary" onClick={answer} disabled={!selected || busy}>{busy ? 'Checking…' : 'Check practice answer'}</button>}
       <button className="quiet" onClick={() => { setRound(null); setError('') }} disabled={busy}>Close practice</button>
     </>}
@@ -145,7 +146,7 @@ function Options({ options, value, change, name, result, disabled }) {
       return <label key={option.id} className={'option' + (right ? ' right' : wrong ? ' wrong' : value === option.id ? ' selected' : '')}>
         <input type="radio" name={name} value={option.id} checked={value === option.id} onChange={() => change(option.id)} />
         <span className="option-letter" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
-        <span>{option.text}</span>
+        <span><MathText text={option.text} /></span>
         {right && <span className="mark">Correct answer</span>}
       </label>
     })}
@@ -210,12 +211,12 @@ function QuestionFlow({ ids, mode, title, finish, refresh }) {
     {error && <p role="alert" className="notice error">{error}</p>}
     {!question && (error ? <button className="secondary" onClick={() => { setError(''); setReload(reload + 1) }}>Retry question</button> : <p role="status">Loading question…</p>)}
     {question && <>
-      <h2 ref={heading} tabIndex={-1} lang={question.language}>{question.stem}</h2>
+      <h2 ref={heading} tabIndex={-1} lang={question.language}><MathText text={question.stem} /></h2>
       <Options options={question.options} value={option} change={setOption} name="quiz" result={result} disabled={busy || Boolean(pending.current)} />
       {!result ? <button className="primary" onClick={submit} disabled={!option || busy}>{busy ? 'Saving…' : error ? 'Retry answer' : 'Check answer'}</button> : <>
         <div className={'notice ' + (result.correct ? 'correct-note' : '')} role="status">
           <strong>{result.correct ? 'Correct' : 'Here’s how to solve it'}</strong>
-          <p>{result.explanation}</p>
+          <p><MathText text={result.explanation} /></p>
           <details><summary>Source and verification</summary><p>{result.verification === 'primary_reference_checked' ? 'Checked against a primary reference.' : 'Independently checked.'}</p>
             <ul>{result.sources.map((s, i) => <li key={i}>{s.title} · {s.locator}</li>)}</ul>
           </details>
@@ -240,6 +241,7 @@ function Desk({ email, profileId }) {
   const [track, setTrack] = useState(() => localStorage.getItem('reviewer-track') === 'subprofessional' ? 'subprofessional' : 'professional')
   const [tab, setTab] = useState('today')
   const [curated, setCurated] = useState({})
+  const [activeSkill, setActiveSkill] = useState(null)
   const [showCurated, setShowCurated] = useState(false)
   const [adaptiveLesson, setAdaptiveLesson] = useState(false)
   const [embeddedPractice, setEmbeddedPractice] = useState(null)
@@ -286,6 +288,7 @@ function Desk({ email, profileId }) {
   }, [catalog, tab, pathStart, detail])
 
   function navigate(stage) {
+    setActiveSkill(null)
     setShowCurated(false)
     setEmbeddedPractice(null)
     setPathStart(null)
@@ -377,7 +380,12 @@ function Desk({ email, profileId }) {
   }
   function openCurated(id) {
     setTab('learn')
-    if (id === 'filipino') {
+    if (extraSkills[id]) {
+      setActiveSkill(id)
+      setEmbeddedPractice(null)
+      setDetail(null)
+      window.scrollTo(0, 0)
+    } else if (id === 'filipino') {
       setDetail(null)
       openImported('Verbal Ability', id)
     } else {
@@ -385,7 +393,7 @@ function Desk({ email, profileId }) {
       if (module) openLesson(module)
     }
   }
-  const dueSkills = Object.keys(curatedTitles).filter(id => curated[id]?.due && (id === 'filipino' || activeIds.has(id)))
+  const dueSkills = Object.keys(curatedTitles).filter(id => curated[id]?.due && (id === 'filipino' || activeIds.has(id) || (extraSkills[id] && (groups.includes(extraSkills[id][0]) || extraSkills[id][0] === 'Filipino'))))
   function startTest(title, testModules) {
     setTest({ title, modules: testModules })
     window.scrollTo(0, 0)
@@ -457,7 +465,15 @@ function Desk({ email, profileId }) {
         }}>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </div>
       {error && <p role="alert" className="notice error">{error}</p>}
-      {test ? <>
+      {activeSkill ? <>
+        <button className="quiet back" onClick={() => {setActiveSkill(null);setEmbeddedPractice(null)}}>Back to Learn</button>
+        <CuratedSkill onProgress={refreshCurated} key={activeSkill} skill={activeSkill}
+          continuePractice={() => openImported(extraSkills[activeSkill][0] === 'Filipino' ? 'Verbal Ability' : extraSkills[activeSkill][0], extraSkills[activeSkill][2])} />
+        {activeSkill === 'government-branches' && <p><a href="https://officialgazette.gov.ph/constitutions/1987-constitution/"
+          target="_blank" rel="noreferrer">Read Articles VI–VIII in the Official Gazette</a></p>}
+        {embeddedPractice && <LearningPractice key={activeSkill} track={track}
+          subject={embeddedPractice.subject} topics={[embeddedPractice.topic]} />}
+      </> : test ? <>
         <button className="quiet back" onClick={() => setTest(null)}>Back to Learn</button>
         <VerifiedLearnTest {...test} openLesson={openLesson} finish={() => setTest(null)} refresh={refresh} />
       </> : pathStart ? <>
@@ -473,7 +489,7 @@ function Desk({ email, profileId }) {
       </> : detail ? <>
         <button className="quiet back" onClick={() => { setDetail(null); setEmbeddedPractice(null); setError('') }}>Back to lessons</button>
         <article className="surface lesson"><div className="eyebrow">{detail.track}</div><h1>{detail.title}</h1>
-          <p>{detail.lesson}</p>
+          <p><MathText text={detail.lesson} /></p>
           <p>{Math.max(0,(topicCounts[detail.id]?.answer_ready ?? detail.quiz_ids.length)-(topicCounts[detail.id]?.verified ?? detail.quiz_ids.length))} linked imports · {detail.quiz_ids.length} verified assessment questions</p>
           <div className="actions">
             <button className="secondary" disabled={busy || progress.completed.includes(detail.id)} onClick={complete}>

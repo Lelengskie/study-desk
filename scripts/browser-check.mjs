@@ -178,6 +178,7 @@ try {
   await page.getByText('Beginner',{exact:true}).waitFor()
   await page.getByRole('button',{name:'Learn',exact:true}).click()
 
+  await page.getByText('Reviewer resources',{exact:true}).first().click()
   await page.getByText('35 imported · 12 verified').waitFor()
   await page.getByRole('button', { name: 'Home', exact: true }).click()
   await page.getByLabel('Weekly goal').selectOption('5')
@@ -203,7 +204,7 @@ try {
   await page.getByRole('heading', { name: 'Percent means out of 100' }).waitFor()
   await page.getByRole('button', { name: 'Get a hint' }).click()
   await page.getByText('Divide the percentage by 100 before multiplying by the total.').waitFor()
-  assert.equal(await page.getByText(/25% is 25\/100/).count(), 0)
+  assert.equal(await page.locator('math[aria-label="25/100"]').count(), 0)
   await page.getByLabel('Find the amount').fill('20')
   await page.getByRole('button', { name: 'Check my answer' }).click()
   await page.getByText('Correct.', { exact: true }).waitFor()
@@ -214,7 +215,7 @@ try {
   await page.getByRole('button', { name: 'Previous Step' }).click()
   await page.getByRole('heading', { name: 'Understand the question' }).waitFor()
   await page.getByLabel('Explanation depth').selectOption('standard')
-  await page.getByText(/25% is 25\/100/).waitFor()
+  await page.locator('math[aria-label="25/100"]').first().waitFor()
   await page.getByRole('button', { name: 'Review fractions first' }).click()
   await page.getByRole('img', { name: '3 of 4 equal parts shaded' }).waitFor()
   await page.getByLabel('Enter the shaded fraction').fill('0.75')
@@ -229,15 +230,16 @@ try {
   await pathway.getByRole('button', { name: 'Review decimals and place value' }).click()
   await pathway.getByText('Math keypad', { exact: true }).click()
   for (const key of ['1', '/', '4']) await pathway.getByRole('button', { name: key, exact: true }).click()
-  assert.equal(await pathway.locator('math mfrac').count(), 1)
+  const preview = pathway.locator('p').filter({has:page.getByText('Math preview',{exact:false})})
+  assert.equal(await preview.locator('math mfrac').count(), 1)
   for (const [value, selector] of [
     ['(-1/2)/(3/4)', 'mfrac mfrac'], ['2 1/3','mfrac'], ['-3/4','mfrac'], ['2^3','msup'], ['√9','msqrt'],
   ]) {
     await pathway.getByLabel('Your calculation').fill(value)
-    assert.ok(await pathway.locator('math ' + selector).count(), value)
+    assert.ok(await preview.locator('math ' + selector).count(), value)
   }
   await pathway.getByLabel('Your calculation').fill('12/25/2026')
-  assert.equal(await pathway.locator('math').count(), 0)
+  assert.equal(await preview.locator('math').count(), 0)
   await pathway.getByLabel('Your calculation').fill('1/4')
   await pathway.getByRole('button', { name: 'Check my calculation' }).click()
   await pathway.getByText('Correct.', { exact: true }).waitFor()

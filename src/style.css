@@ -307,3 +307,22 @@ progress { display: block; width: 100%; height: .55rem; accent-color: var(--acce
 .math-keypad summary { cursor: pointer; }
 .math-keypad > div { display:grid; grid-template-columns:repeat(auto-fit,minmax(3.3rem,1fr)); gap:.3rem; margin-block:.5rem; }
 .math-keypad button { padding:.3rem; overflow-wrap:anywhere; }
+
+/* Shared curriculum surfaces */
+.journey-numerical { --subject: #1d4ed8; --tint: #eff6ff; --subject-line: #3b82f6; }
+.journey-verbal { --subject: #087759; --tint: #ecfdf5; --subject-line: #10b981; }
+.journey-analytical { --subject: #6841b4; --tint: #f5f1ff; --subject-line: #8b5cf6; }
+.journey-filipino { --subject: #a82263; --tint: #fff0f7; --subject-line: #ec4899; }
+.journey-information { --subject: #98500a; --tint: #fff7e7; --subject-line: #d97706; }
+.journey-clerical { --subject: #0d677a; --tint: #ecfafc; --subject-line: #0891b2; }
+.journey-subject { border-top: 3px solid var(--subject-line); border-radius: 1.15rem; box-shadow: 0 6px 20px #19253d0c; }
+.journey-subject h3 { font-size: 1.24rem; }
+.journey-subject summary { cursor: pointer; min-height: 44px; padding-block: .65rem; }
+.journey-overview { padding: clamp(1rem, 3vw, 1.6rem); display: grid; gap: .95rem; }
+.journey-overview-grid { display: grid; gap: .8rem 1.35rem; grid-template-columns: repeat(auto-fit,minmax(min(100%,16rem),1fr)); }
+.journey-overview button { justify-self: start; }
+.journey-meter progress { accent-color: var(--subject, var(--accent)); }
+.math-inline { display: inline-block; max-inline-size: 100%; vertical-align: middle; overflow-x: auto; padding-block: .15em; }
+.percent-model { width: min(100%, 24rem); display: block; border-radius: .35rem; }
+.math-inline math { white-space: nowrap; }
+fieldset { min-inline-size: 0; }

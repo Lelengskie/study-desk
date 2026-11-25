@@ -1,3 +1,4 @@
+import MathText from './MathText'
 import React, { useState } from 'react'
 import { equivalentNumber } from './practice-response.mjs'
 import PracticeResponse from './PracticeResponse'
@@ -145,7 +146,7 @@ function Exercise({ lesson }) {
       </div>
     </form>
     {checked && <p role="status">{correct ? 'Correct.' : 'Try again or use the hint.'}</p>}
-    {help === 1 && <p role="status">{lesson.hint}</p>}
+    {help === 1 && <p role="status"><MathText text={lesson.hint} /></p>}
     {help === 2 && <div className="concept-worked">
       {steps && <label>Explanation depth <select value={depth} onChange={event => {
         setDepth(event.target.value)
@@ -154,12 +155,12 @@ function Exercise({ lesson }) {
         <option value="detailed">Detailed</option><option value="standard">Standard</option><option value="quick">Quick</option>
       </select></label>}
       {steps && depth === 'detailed' ? <>
-        <div role="status"><h3>{steps[step][0]}</h3><p>{steps[step][1]}</p></div>
+        <div role="status"><h3>{steps[step][0]}</h3><p><MathText text={steps[step][1]} /></p></div>
         <div className="actions">
           <button className="secondary" disabled={step === 0} onClick={() => setStep(step - 1)}>Previous Step</button>
           <button className="secondary" disabled={step === steps.length - 1} onClick={() => setStep(step + 1)}>Next Step</button>
         </div>
-      </> : <div role="status"><p>{lesson.explanation(value, total, answer)}</p>{depth !== 'quick' && <p>{lesson.mistake}</p>}</div>}
+      </> : <div role="status"><p><MathText text={lesson.explanation(value, total, answer)} /></p>{depth !== 'quick' && <p><MathText text={lesson.mistake} /></p>}</div>}
       {lesson.field === 'Percentage' && <small>Prerequisite · Fractions and decimals</small>}
     </div>}
   </section>

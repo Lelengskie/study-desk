@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { conceptLabel } from './concept-labels.mjs'
+import SubjectIcon from './SubjectIcon'
 import { curriculum, curriculumEntry } from './curriculum.mjs'
 import { rpc } from './api'
 import { analyticalConcepts as analytical, mathPath } from './math-path.mjs'
 import { activeStudyDays, journeyRewards } from './journey-progress.mjs'
 
 const subjects = {
-  'Verbal Ability': { icon: 'Aa', color: 'verbal', intro: 'Read for meaning and choose clear, precise language.' },
-  'Numerical Ability': { icon: '∑', color: 'numerical', intro: 'Build confidence with numbers before tackling word problems.' },
-  'Analytical Ability': { icon: '∴', color: 'analytical', intro: 'Find patterns, test conclusions, and reason from evidence.' },
-  Filipino: { icon: 'Fi', color: 'verbal', intro: 'Pag-aralan ang talasalitaan, paggamit ng wika, at pagbasa.' },
-  'Clerical Ability': { icon: 'A–Z', color: 'clerical', intro: 'Practice accurate sorting, spelling, and transcription.' },
-  'General Information': { icon: '§', color: 'information', intro: 'Learn core principles of government, rights, and public service.' },
+  'Verbal Ability': { color: 'verbal', intro: 'Read for meaning and choose clear, precise language.' },
+  'Numerical Ability': { color: 'numerical', intro: 'Build confidence with numbers before tackling word problems.' },
+  'Analytical Ability': { color: 'analytical', intro: 'Find patterns, test conclusions, and reason from evidence.' },
+  Filipino: { color: 'filipino', intro: 'Pag-aralan ang talasalitaan, paggamit ng wika, at pagbasa.' },
+  'Clerical Ability': { color: 'clerical', intro: 'Practice accurate sorting, spelling, and transcription.' },
+  'General Information': { color: 'information', intro: 'Learn core principles of government, rights, and public service.' },
 }
 // Reviewer prerequisites are suggestions. Every lesson stays available.
 const reviewerPath = {
@@ -115,7 +116,7 @@ export default function Journey({
     return <section className={'journey-roadmap journey-' + theme.color}>
       <button className="quiet" onClick={() => chooseSubject(null)}>Back to subjects</button>
       <header className="journey-banner surface">
-        <span className="journey-icon" aria-hidden="true">{theme.icon}</span>
+        <SubjectIcon subject={theme.color} />
         <div><h2>{subject}</h2><p>{theme.intro}</p></div>
       </header>
       {lessons.some(module => module.quiz_ids.length) && <button className="primary"
@@ -205,12 +206,13 @@ export default function Journey({
         const data = subjectData(name)
         const coverage = subjectCounts?.find(row => row.subject === name)
         return <article className={'surface journey-subject journey-' + theme.color} key={name}>
-          <span aria-hidden="true" className="journey-icon">{theme.icon}</span>
+          <SubjectIcon subject={theme.color} />
           <h3>{name}</h3><p>{theme.intro}</p>
-          {coverage && <p>{coverage.imported} imported · {coverage.verified} verified</p>}
+          {coverage && <details><summary>Reviewer resources</summary><p>{coverage.imported} imported · {coverage.verified} verified</p>
           {coverage?.subject_only > 0 && <small>{coverage.subject_only} available in subject practice while topic mapping is reviewed</small>}
-          {coverage?.imported > 0 && <button className="quiet" onClick={() => openPractice(name)}>Practice {name.toLowerCase()}</button>}
+          {coverage?.imported > 0 && <button className="quiet" onClick={() => openPractice(name)}>Practice {name.toLowerCase()}</button>}</details>}
           <SubjectProgress label={name + " curriculum mastery"} count={data.mastered} total={data.entries.length} />
+          <p className="small muted">{data.entries.length - data.mastered} concepts remaining</p>
           {(data.nextConcept || data.nextLesson) && <p className="journey-next">Next: {data.nextConcept ? mathPath[data.nextConcept].title : data.nextLesson.title}</p>}
           <div className="actions">
             <button className="primary" aria-label={'Continue learning ' + name}
@@ -223,7 +225,21 @@ export default function Journey({
         <p>Additional answer-ready questions are available in All subjects while their classification is reviewed.</p>
       </div>}
     </section>}
-    {view === 'today' && <button className="secondary" onClick={openLearn}>Explore subjects</button>}
+    {view === 'today' && <section className="surface journey-overview">
+      <h2>Curriculum progress</h2>
+      {(() => {
+        const entries = applicable.flatMap(name => subjectData(name).entries)
+        return <SubjectProgress label="Overall mastery" count={entries.filter(item => item.mastered).length} total={entries.length} />
+      })()}
+      <div className="journey-overview-grid">{applicable.map(name => {
+        const theme = subjects[name]
+        const data = subjectData(name)
+        return <div className={'journey-' + theme.color} key={name}>
+          <SubjectProgress label={name} count={data.mastered} total={data.entries.length} />
+        </div>
+      })}</div>
+      <button className="secondary" onClick={openLearn}>Explore subjects</button>
+    </section>}
     {view !== 'learn' && <section className="surface journey-activity">
       <div><h2>Your study rhythm</h2><p>Guided practice activity over the last seven days.</p></div>
       <ol className="journey-week">{activity.week.map(({ date, active }) =>

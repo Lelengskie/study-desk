@@ -52,6 +52,20 @@ function FractionExplorer() {
   </div>
 }
 
+function PercentageModel() {
+  const [part, setPart] = useState(25)
+  return <figure className="fraction-explorer">
+    <label>Percent of the whole <input type="range" min="0" max="100" step="5" value={part}
+      onChange={event => setPart(Number(event.target.value))} /> {part}%</label>
+    <svg viewBox="0 0 100 12" className="percent-model" role="img" aria-label={part + ' parts shaded out of 100'}>
+      <rect width="100" height="12" fill="#e2eaf4" />
+      <rect width={part} height="12" fill="#1d4ed8" />
+      <path d="M25 0v12M50 0v12M75 0v12" stroke="white" strokeWidth=".5" />
+    </svg>
+    <figcaption><MathText text={part + '% = ' + part + '/100'} />. The full bar represents 100 equal parts.</figcaption>
+  </figure>
+}
+
 export default function FoundationGuide({ concept }) {
   const guide = guides[concept]
   if (!guide) return null
@@ -59,6 +73,7 @@ export default function FoundationGuide({ concept }) {
     <h4>Understand the concept</h4>
     {guide.map(line => <p key={line}>{line}</p>)}
     {concept === 'fraction-understanding' && <FractionExplorer />}
+    {concept === 'percent' && <PercentageModel />}
     {concept === 'fractions' && <><FractionExplorer /><FractionSkills /></>}
   </div>
 }

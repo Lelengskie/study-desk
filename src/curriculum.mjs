@@ -13,31 +13,43 @@ export const curriculum = {
   },
   'Verbal Ability': {
     'Vocabulary': ['Vocabulary','Synonyms','Antonyms','Context clues','Idioms','Word relationships'],
-    'Grammar and usage': ['Parts of speech','@grammar','Verb tenses','Pronouns','Prepositions','Correct usage'],
+    'Grammar and usage': ['Parts of speech','@grammar','Verb tenses','@verbal-pronouns','Prepositions','Correct usage'],
     'Sentence skills': ['Sentence completion','Sentence correction','Error identification'],
-    'Reading': ['Reading comprehension','Main idea','Supporting details','Inference','Paragraph organization'],
+    'Reading': ['Reading comprehension','@verbal-main-idea','Supporting details','Inference','Paragraph organization'],
   },
   'Filipino': {
-    'Talasalitaan': ['Talasalitaan','Kasingkahulugan','Kasalungat','@filipino'],
+    'Talasalitaan': ['Talasalitaan','@filipino-synonyms','@filipino-antonyms','@filipino'],
     'Wika at pagbasa': ['Wastong gamit','Gramatika','Pag-unawa sa binasa','Pagkakaayos ng mga talata'],
   },
   'Analytical Ability': {
     'Patterns and relationships': ['Classification','Analogies','Number patterns','Letter patterns','arrangement'],
     'Deductive and inductive reasoning': ['Deductive reasoning','Inductive reasoning','syllogism','venn','Valid conclusions','deductive-counterexample'],
-    'Evaluating arguments': ['Assumptions','Inferences','Argument evaluation','Evidence'],
+    'Evaluating arguments': ['@analytical-assumptions','Inferences','Argument evaluation','Evidence'],
     'Interpreting information': ['@data-interpretation','sufficiency','Data interpretation','Mixed multi-step cases','Timed analytical challenges'],
   },
   'General Information': {
-    'The Constitution and government': ['@constitution','Government structure','Constitutional rights'],
+    'The Constitution and government': ['@constitution','@government-branches','Constitutional rights'],
     'Public service and society': ['RA 6713 and public-service ethics','Peace and human rights','Environmental management'],
   },
   'Clerical Ability': {
-    'Filing and indexing': ['@clerical','Indexing','Secondary filing keys','Numeric filing keys'],
-    'Accuracy in office work': ['Spelling','Transcription','Office clerical applications'],
+    'Filing and indexing': ['@clerical','Indexing','Secondary filing keys','@clerical-numeric'],
+    'Accuracy in office work': ['Spelling','@clerical-transcription','Office clerical applications'],
   },
 }
 
+export const extraSkills = {
+  'government-branches': ['General Information','Branches of Philippine government','constitution'],
+  'verbal-main-idea': ['Verbal Ability', 'Finding the main idea','reading-comprehension'],
+  'verbal-pronouns': ['Verbal Ability', 'Clear pronoun reference','grammar'],
+  'filipino-synonyms': ['Filipino', 'Kasingkahulugan','filipino'],
+  'filipino-antonyms': ['Filipino', 'Kasalungat','filipino'],
+  'analytical-assumptions': ['Analytical Ability', 'Finding necessary assumptions','assumptions'],
+  'clerical-numeric': ['Clerical Ability', 'Numeric filing keys','clerical'],
+  'clerical-transcription': ['Clerical Ability', 'Accurate transcription','spelling'],
+}
+
 export const curatedTitles = {
+  ...Object.fromEntries(Object.entries(extraSkills).map(([id, [, title]]) => [id, title])),
   grammar: 'Subject–verb agreement',
   filipino: 'Pahiwatig sa konteksto',
   'data-interpretation': 'Conditions and sufficient evidence',
