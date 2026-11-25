@@ -4,7 +4,7 @@ export function equivalentNumber(input, expected) {
   return a !== null && b !== null && a[0] * b[1] === b[0] * a[1]
 }
 
-function rational(value) {
+export function rational(value) {
   const text = String(value).trim().replace('−', '-')
   if (text.length > 48) return null
   const mixed = /^([+-]?)(\d+)\s+(\d+)\s*\/\s*(\d+)$/.exec(text)

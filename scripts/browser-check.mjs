@@ -43,6 +43,7 @@ try {
     options: [{ label: 'A', text: 'Sample option' }, { label: 'B', text: 'Other option' }], saved: false }
   const typed = { ...unscored, id: 'b'.repeat(64), stem: 'What is half of one?', options: [] }
   const selfCheck = { ...typed, id: 'c'.repeat(64), stem: 'Reword the sentence in your own words.' }
+  const conceptAttempts = []
   await page.route(fakeUrl + '/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     const method = route.request().method()
@@ -75,6 +76,16 @@ try {
       return send({ answer: 'A', status: unscored.status })
     }
     if (path.endsWith('/hybrid_feedback')) return send(null)
+    if (path.endsWith('/v2_concept_progress')) return send(conceptAttempts)
+    if (path.endsWith('/v2_concept_attempt')) {
+      const attempt = route.request().postDataJSON()
+      assert.equal(attempt.skill, 'decimals')
+      assert.equal(attempt.hint_count, 0)
+      assert.equal(Number(attempt.numerator) / Number(attempt.denominator), .25)
+      conceptAttempts.push({ concept: 'decimals', variant: attempt.variant_no, independent: true,
+        correct: true, attempted_at: new Date().toISOString() })
+      return send(true)
+    }
     if (path.endsWith('/study_progress')) return send({
       completed,
       mastery: gradeCalls ? { arithmetic: { attempts: gradeCalls, correct: 1, distinct_items: 1, sessions: 1, mastered: false } } : {},
@@ -147,6 +158,7 @@ try {
   await pathway.getByLabel('Your calculation').fill('1/4')
   await pathway.getByRole('button', { name: 'Check my calculation' }).click()
   await pathway.getByText('Correct.', { exact: true }).waitFor()
+  await pathway.getByText(/1 correct on 1 independent variations/).waitFor()
   await pathway.getByRole('button', { name: 'Try a new calculation' }).click()
   assert.equal(await pathway.getByLabel('Your calculation').inputValue(), '')
   await page.getByRole('button', { name: 'Back to lessons' }).click()

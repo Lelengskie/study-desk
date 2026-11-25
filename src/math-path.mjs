@@ -63,7 +63,7 @@ export const mathPath = {
     steps: ['Find each hourly rate as a fraction of one job.', `Each person completes 1/${2 * n} of the job in one hour. Together they do 2/${2 * n}, or 1/${n}, per hour. That takes ${n} hours.`, `After ${n} hours each person has finished half the job, so together they finish one whole job.`],
     mistake: 'Add the rates. Adding the times would give the wrong quantity.',
   })),
-  discount: lesson('Discounts and commissions', 'percent', n => ({
+  discount: lesson('Discounts', 'percent', n => ({
     question: `An item costs ${100 * n} pesos before a 10% discount. What is the sale price in pesos?`, answer: String(90 * n),
     steps: ['A discount is money taken off the listed price. Ten percent means one tenth.', `Divide ${100 * n} by 10 to find the discount of ${10 * n} pesos. Subtract it to get ${90 * n} pesos.`, `Add the discount back to the sale price to recover ${100 * n} pesos.`],
     mistake: 'A commission question usually asks for the percentage amount earned. This question asks for the price after subtracting the discount.',
@@ -73,9 +73,33 @@ export const mathPath = {
     steps: ['Simple interest uses the starting amount each year. Five percent is 5/100.', `Multiply ${100 * n} by 5/100 to get ${5 * n} pesos per year. Multiply by two years to get ${10 * n} pesos.`, `Divide ${10 * n} by two to recover the yearly interest.`],
     mistake: 'The interest is the amount earned. The ending balance includes the starting amount too.',
   })),
-  area: lesson('Area and perimeter', 'order', n => ({
+  area: lesson('Rectangle area', 'order', n => ({
     question: `A rectangle is 3 cm wide and ${n} cm long. What is its area in square centimeters?`, answer: String(3 * n),
     steps: ['Area counts the unit squares that cover a surface.', `Arrange ${n} squares in each of 3 rows. This gives ${n} × 3 = ${3 * n} square centimeters.`, `Divide the square count by 3 rows to recover the length of ${n} cm.`],
     mistake: `Perimeter measures the boundary. Adding its four sides gives ${2 * (n + 3)} cm, a different quantity.`,
+  })),
+  commission: lesson('Sales commissions', 'percent', n => ({
+    question: `A salesperson earns 5% commission on ${100*n} pesos in sales. How many pesos do they earn as commission?`,
+    answer: String(5*n),
+    steps: ['Commission is the part of a sale paid to the salesperson. Five percent is 5 out of 100.',
+      `There are ${n} groups of 100 pesos in the sales total. Each earns 5 pesos, so the commission is ${5*n} pesos.`,
+      `Multiply the commission by 20. That reverses taking one twentieth and gives ${100*n} pesos.`],
+    mistake: 'Use total sales to calculate the commission. Report only the amount earned.',
+  })),
+  perimeter: lesson('Rectangle perimeter', 'area', n => ({
+    question: `A rectangle is ${n} cm long and 3 cm wide. What is the distance around it in centimeters?`,
+    answer: String(2*(n+3)),
+    steps: ['The perimeter is the length around the boundary. Opposite sides of a rectangle have equal lengths.',
+      `Add two lengths and two widths. ${n} + 3 + ${n} + 3 = ${2*(n+3)} cm.`,
+      `Halve the perimeter to get ${n+3} cm, the sum of one length and one width.`],
+    mistake: 'Multiplying width by length gives square centimeters and measures area.',
+  })),
+  venn: lesson('Venn diagrams and overlap', 'order', n => ({
+    question: `A class has ${n+6} readers of comics and ${n+4} readers of mysteries. ${n} read both. How many read at least one?`,
+    answer: String(n+10),
+    steps: ['A Venn diagram uses overlapping circles for groups. Readers in the overlap are counted in both group totals.',
+      `Add the totals, then subtract the ${n} readers counted twice. ${n+6} + ${n+4} − ${n} = ${n+10}.`,
+      `The three regions contain 6 comic-only readers, ${n} readers of both and 4 mystery-only readers. Together they total ${n+10}.`],
+    mistake: 'Subtract each shared reader once so that reader is still included.',
   })),
 }

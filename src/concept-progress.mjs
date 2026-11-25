@@ -1,0 +1,37 @@
+const day = 86_400_000
+const intervals = [1, 3, 7, 14]
+
+export function conceptState(rows, skill, now = Date.now()) {
+  const attempts = rows.filter(row => row.concept === skill)
+    .sort((a, b) => new Date(a.attempted_at) - new Date(b.attempted_at))
+  const independent = attempts.filter(row => row.independent)
+  const success = independent.filter(row => row.correct).length
+  let retained = 0
+  let due = null
+  for (const row of attempts) {
+    const at = Date.parse(row.attempted_at)
+    if (!row.independent || !row.correct) {
+      retained = 0
+      due = at + day
+    } else if (due === null || at >= due) {
+      if (due !== null) retained = Math.min(retained + 1, intervals.length - 1)
+      due = at + intervals[retained] * day
+    }
+  }
+  return {
+    independent: independent.length, success, due, retained,
+    weak: attempts.length > 0 && attempts.slice(-2).some(row => !row.correct || !row.independent),
+    mastery: independent.length >= 4 && success / independent.length >= .9 && retained >= 1,
+    unused: Array.from({ length: 8 }, (_, index) => index + 2).filter(n => !attempts.some(row => row.variant === n)),
+    dueNow: due !== null && now >= due,
+  }
+}
+
+export function dailyConcepts(rows, path, now = Date.now()) {
+  const keys = Object.keys(path)
+  const states = Object.fromEntries(keys.map(key => [key, conceptState(rows, key, now)]))
+  const weakPrerequisites = keys.filter(key => states[key].weak).map(key => path[key].prerequisite).filter(Boolean)
+  const due = keys.filter(key => states[key].dueNow)
+  const next = keys.filter(key => !states[key].mastery && (!path[key].prerequisite || states[path[key].prerequisite].mastery))
+  return [...new Set([...due, ...weakPrerequisites, ...next])].filter(key => states[key].unused.length).slice(0, 3)
+}
