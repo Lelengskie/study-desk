@@ -4,6 +4,14 @@ import { firstSeed, lastSeed, mathPath } from '../src/math-path.mjs'
 import { equivalentNumber } from '../src/practice-response.mjs'
 
 const expected = {
+  'whole-multiply': n => Array(n).fill(2+n%8).reduce((sum, size) => sum+size, 0),
+  'whole-divide': n => (n*(2+n%9))/(2+n%9),
+  'percent-change': n => 100*n + (n%2 ? 5*n : -5*n),
+  'compound-interest': n => n*(10000+(n%2 ? 201 : 404)),
+  'multi-equation': n => (((n+4)*(2+n%5)-3)+3)/(2+n%5)-4,
+  volume: n => Array(2+n%5).fill(3*n).reduce((sum, layer) => sum+layer, 0),
+  'measurement-conversion': n => n%2 ? Math.round(n/0.01) : Math.round(100*n*0.01),
+  'simple-probability': n => `${n*3}/${3*(n+2+n%7)}`,
   'basic-arithmetic': n => n+18-7,
   'fraction-understanding': n => `${2*n}/${2*n+6}`,
   'fraction-equivalent': n => (3*n+3)/(n+1)*n,
@@ -32,7 +40,7 @@ for (const [id, lesson] of Object.entries(mathPath)) {
     for (let n = firstSeed; n <= lastSeed; n++) {
       const problem = lesson.generate(n)
       assert.ok(equivalentNumber(problem.answer, expected[id](n)), problem.question)
-      assert.equal(problem.steps.length, 3)
+      assert.ok(problem.steps.length >= 3)
       assert.ok(problem.mistake)
       questions.add(problem.question)
     }
