@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import MathText from './MathText'
+import { nextLearningActivity } from './learning-session.mjs'
 import FoundationGuide from './FoundationGuide'
 import PracticeResponse from './PracticeResponse'
 import { rpc } from './api'
@@ -19,9 +20,15 @@ const misconceptionPrompts = {
   possible_double_counting: 'Did you count readers in both groups twice? Place those readers in the overlap first.',
 }
 
-export default function MathPath({ initialConcept = 'signed', openImported, importedCoverage, onConceptChange }) {
+export default function MathPath({ initialConcept = 'signed', renderPractice, importedCoverage, onConceptChange }) {
+  const [application, setApplication] = useState(false)
+  const [exposed, setExposed] = useState(false)
+  const [remedy, setRemedy] = useState(false)
   const [concept, setConcept] = useState(initialConcept)
   function choose(id) {
+    setApplication(false)
+    setExposed(false)
+    setRemedy(false)
     setConcept(id)
     onConceptChange?.()
   }
@@ -46,6 +53,14 @@ export default function MathPath({ initialConcept = 'signed', openImported, impo
   const example = entry.generate(1)
   const nextConcept = daily.find(id => id !== concept)
   const coverage = importedCoverage?.(concept)
+  const activity = nextLearningActivity({ due: state.dueNow, weak: state.weak,
+    independent: state.success, exposed, hasImported: Boolean(renderPractice && coverage?.imported) })
+  const applying = application
+  function reviewFoundation() {
+    setExposed(true)
+    setApplication(false)
+    setRemedy(true)
+  }
   return <section className="surface concept-lab">
     <h2>Math foundations</h2>
     <label>Concept <select value={concept} onChange={event => choose(event.target.value)}>
@@ -77,20 +92,21 @@ export default function MathPath({ initialConcept = 'signed', openImported, impo
       <ol>{example.steps.map(step => <li key={step}><MathText text={step} /></li>)}</ol>
       <p>Common mistake: {example.mistake}</p>
     </details>
-    <h3>Try it independently</h3>
-    {sync !== 'loading' && <Variation key={'variation-' + concept} concept={concept} entry={entry} state={state}
-      sync={sync} refresh={refresh} />}
+    {remedy && <p role="status">Review the worked example, then try a fresh foundational exercise.</p>}
+    {!applying && <h3>{activity === 'retention' ? 'Check what you remember' : 'Try it independently'}</h3>}
+    {sync !== 'loading' && !applying && <Variation key={'variation-' + concept} concept={concept} entry={entry} state={state}
+      sync={sync} refresh={refresh} advancesToApplication={activity === 'application'} onAdvance={() => {
+        if (activity === 'application') setApplication(true)
+      }} />}
+    {sync === 'ready' && applying && renderPractice?.(concept,reviewFoundation)}
     <div className="actions">
-      {openImported && <button className="secondary" onClick={() => openImported(concept)}>
-        {coverage?.imported ? 'Open imported practice' : 'Browse subject practice'}
-      </button>}
       {nextConcept && <button className="secondary" onClick={() => choose(nextConcept)}>
         Continue to {mathPath[nextConcept].title.toLowerCase()}</button>}
     </div>
   </section>
 }
 
-function Variation({ concept, entry, state, sync, refresh }) {
+function Variation({ concept, entry, state, sync, refresh, advancesToApplication, onAdvance }) {
   const [variant, next] = useState(() => state.unused[0] ?? firstSeed)
   const [response, change] = useState('')
   const [feedback, show] = useState('')
@@ -135,9 +151,10 @@ function Variation({ concept, entry, state, sync, refresh }) {
         <button type="button" className="secondary" disabled={busy || revealed >= problem.steps.length}
           onClick={() => reveal(revealed + 1)}>{revealed ? 'Next step' : 'Show hint'}</button>
         <button type="button" className="quiet" disabled={busy} onClick={() => {
+          if (feedback === 'Correct.' && revealed === 0) onAdvance?.()
           next(advanceVariant(variant, state.unused))
           change(''); show(''); reveal(0)
-        }}>Try a new calculation</button>
+        }}>{advancesToApplication && feedback === 'Correct.' && revealed === 0 ? 'Continue learning' : 'Try a new calculation'}</button>
       </div>
     </form>
     <p role="status">{feedback}</p>

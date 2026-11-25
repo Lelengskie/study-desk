@@ -140,7 +140,7 @@ export default function Hybrid({ library, track, modules, initialTopic = '', ini
   </>
 }
 
-function PracticeCard({ item, updateSaved }) {
+export function PracticeCard({ item, updateSaved, onResult }) {
   const [choice, setChoice] = useState('')
   const [submitted, setSubmitted] = useState('')
   const [answer, setAnswer] = useState(null)
@@ -202,6 +202,8 @@ function PracticeCard({ item, updateSaved }) {
         const result = await rpc('hybrid_answer', { question_id: item.id })
         setSubmitted(choice)
         setAnswer(result)
+        onResult?.(typed ? result.exact_value == null ? 'self-check' : equivalentNumber(choice,result.exact_value)
+          : choice === result.answer)
       })}>{typed ? 'Compare with the answer' : 'Check answer availability'}</button>
       <button className="quiet" disabled={busy} onClick={() => act(async () => {
         await rpc('hybrid_feedback', { question_id: item.id, bookmark: !item.saved })

@@ -65,9 +65,8 @@ try {
       editions: ['2027'], drive_file_id: 'fixture-only'
     }])
     if (path.endsWith('/hybrid_practice')) {
-      const count = route.request().postDataJSON()?.random_count
-      if (count !== undefined) assert.equal(count, 3)
-      return send(count === undefined ? [unscored] : [unscored, typed, selfCheck])
+      const input = route.request().postDataJSON() ?? {}
+      return send(input.after_id ? [] : [unscored, typed, selfCheck])
     }
     if (path.endsWith('/hybrid_practice_context')) return send({ instructions: 'Give an equivalent response.' })
     if (path.endsWith('/hybrid_answer')) {
@@ -170,9 +169,8 @@ try {
   await page.getByText(/Foundation · .* concepts/).waitFor()
   await page.getByRole('heading', { name: 'Imported practice by concept' }).waitFor()
   await page.getByRole('button', { name: 'Practice Adding fractions' }).click()
-  await page.getByRole('heading', {name:'Imported practice', exact:true}).waitFor()
-  await page.getByRole('button',{name:'Practice filters'}).click()
-  assert.equal(await page.getByLabel('Topic').inputValue(), 'concept:fractions')
+  await page.getByRole('heading', { name: 'Apply what you learned', exact:true }).waitFor()
+  assert.equal(await page.getByRole('button',{name:'Practice filters'}).count(),0)
   await page.getByRole('button', { name: 'Learn', exact: true }).click()
   await page.getByRole('button', { name: 'Open Numerical Ability roadmap' }).click()
 
@@ -243,8 +241,8 @@ try {
   await page.getByRole('button', { name: 'Open lesson: Number patterns' }).click()
   await page.getByRole('button', { name: 'Mark lesson complete' }).click()
   await page.getByRole('button', { name: 'Lesson complete' }).waitFor()
-  await page.getByRole('button', { name: 'Start quiz', exact: true }).click()
-  await page.getByRole('heading', { name: 'What comes after 3, 6, 9?' }).waitFor()
+  await page.getByRole('button', { name: 'Continue learning', exact: true }).click()
+  await page.getByRole('heading', { name: 'Apply what you learned', exact:true }).waitFor()
   await page.getByRole('button', { name: 'Library', exact: true }).click()
   await page.getByRole('heading', { name: 'Sample mock examination' }).waitFor()
   assert.match(await page.getByRole('link', { name: 'Open in Google Drive' }).getAttribute('href'), /drive.google.com/)
@@ -252,9 +250,7 @@ try {
   await page.getByRole('button', { name: 'Search', exact: true }).click()
   await page.getByRole('button', { name: 'Learn', exact: true }).click()
   await page.getByRole('button', { name: 'Browse all practice', exact: true }).click()
-  await page.getByLabel('Questions per session').fill('3')
-  await page.getByRole('button', { name: 'Start random practice' }).click()
-  await page.getByText('Question 1 of 3').waitFor()
+  await page.getByRole('heading', { name: 'Apply what you learned', exact:true }).waitFor()
   await page.getByLabel('Sample option', { exact: true }).check()
   await page.getByRole('button', { name: 'Check answer availability' }).click()
   await page.getByText('Answer: Sample option', { exact: true }).waitFor()

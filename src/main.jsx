@@ -3,6 +3,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { client, rpc, tutor } from './api'
 import Hybrid from './Hybrid'
+import LearningPractice from './LearningPractice'
+import CurriculumPrimer, { hasPrimer } from './CurriculumPrimer'
 import { conceptLabel } from './concept-labels.mjs'
 import ConceptLab from './ConceptLab'
 import MathPath from './MathPath'
@@ -233,6 +235,7 @@ function Desk({ email, profileId }) {
   const [progress, setProgress] = useState(emptyProgress)
   const [track, setTrack] = useState(() => localStorage.getItem('reviewer-track') === 'subprofessional' ? 'subprofessional' : 'professional')
   const [tab, setTab] = useState('today')
+  const [adaptiveLesson, setAdaptiveLesson] = useState(false)
   const [embeddedPractice, setEmbeddedPractice] = useState(null)
   const [pathStart, setPathStart] = useState(null)
   const [conceptRows, setConceptRows] = useState([])
@@ -349,12 +352,19 @@ function Desk({ email, profileId }) {
     return { subject, imported }
   }
   function openImported(subject, concept) {
+    setAdaptiveLesson(false)
     setEmbeddedPractice({ subject, topic: concept ? 'concept:' + concept : '' })
   }
   function openLesson(module) {
     setEmbeddedPractice(null)
+    setAdaptiveLesson(false)
     setDetail(module)
     window.scrollTo(0, 0)
+  }
+  function continueLesson(module) {
+    const pending = due.filter(review => review.topic_id === module.id)
+    if (pending.length) start(pending.map(review => review.question_id),'repeat',module.title)
+    else setAdaptiveLesson(true)
   }
   function chooseJourneySubject(subject) {
     setJourneySubject(subject)
@@ -377,9 +387,19 @@ function Desk({ email, profileId }) {
 
   const lessonConcepts = detail ? conceptCounts.filter(row => row.subject === detail.track
     && linkedConcepts[detail.id]?.includes(row.concept)) : []
-  const importedPanel = embeddedPractice && <Hybrid key={track + embeddedPractice.subject + embeddedPractice.topic}
-    embedded track={track} modules={catalog} initialTopic={embeddedPractice.topic}
-    initialSubject={embeddedPractice.subject} conceptCounts={conceptCounts} />
+  const importedPanel = embeddedPractice && (tab === 'tutor'
+    ? <Hybrid key={track + embeddedPractice.subject + embeddedPractice.topic} embedded track={track}
+        modules={catalog} initialTopic={embeddedPractice.topic} initialSubject={embeddedPractice.subject}
+        conceptCounts={conceptCounts} />
+    : embeddedPractice.topic === 'concept:filipino'
+      ? <div key={track + 'filipino'}>
+          {!adaptiveLesson && <CurriculumPrimer concept="filipino" onReady={() => setAdaptiveLesson(true)} />}
+          {adaptiveLesson && <LearningPractice profileId={profileId} track={track} subject="Verbal Ability"
+            topics={['concept:filipino']} onFinish={() => setAdaptiveLesson(false)} />}
+        </div>
+      : <LearningPractice profileId={profileId} key={track + embeddedPractice.subject + embeddedPractice.topic} track={track}
+          subject={embeddedPractice.subject || null} topics={[embeddedPractice.topic]} />)
+
 
   return <div className="desk">
     <aside className="sidebar">
@@ -403,10 +423,9 @@ function Desk({ email, profileId }) {
       {pathStart ? <>
         <button className="quiet back" onClick={() => {setPathStart(null); setEmbeddedPractice(null)}}>Back to {tab === 'repeat' ? 'reviews' : journeySubject || 'Learn'}</button>
         <MathPath key={pathStart} initialConcept={pathStart} importedCoverage={conceptCoverage}
-          openImported={concept => {
-            const coverage = conceptCoverage(concept)
-            openImported(coverage.subject, coverage.imported ? concept : null)
-          }} onConceptChange={() => setEmbeddedPractice(null)} />
+          renderPractice={(concept, onFinish) => <LearningPractice profileId={profileId} key={track + concept} track={track}
+            subject={conceptCoverage(concept).subject} topics={['concept:' + concept]} onFinish={onFinish} />}
+          onConceptChange={() => setEmbeddedPractice(null)} />
         {importedPanel}
       </> : flow ? <>
         <button className="quiet back" onClick={() => { setFlow(null); setError('') }}>End session</button>
@@ -420,12 +439,12 @@ function Desk({ email, profileId }) {
             <button className="secondary" disabled={busy || progress.completed.includes(detail.id)} onClick={complete}>
               {progress.completed.includes(detail.id) ? 'Lesson complete' : busy ? 'Saving…' : 'Mark lesson complete'}
             </button>
-            <button className="primary" onClick={() => start(detail.quiz_ids, 'quiz', detail.title)}>Start quiz</button>
-            <button className="secondary" onClick={() => setEmbeddedPractice({ subject: detail.track, topic: detail.id })}>Practice linked imports</button>
-            <button className="quiet" onClick={() => setEmbeddedPractice({ subject: detail.track, topic: '' })}>More practice in this subject</button>
+
+            {!hasPrimer(detail.id) && !adaptiveLesson &&
+              <button className="primary" onClick={() => continueLesson(detail)}>Continue learning</button>}
           </div>
           {lessonConcepts.length > 0 && <details className="concept-worked">
-            <summary>Practice an individual concept</summary>
+            <summary>Explore related concepts</summary>
             <ul>{lessonConcepts.map(row => <li key={row.concept}>
               <button className="quiet" onClick={() => openImported(row.subject,row.concept)}>
                 {conceptLabel(row.concept)} · {row.imported} imported
@@ -433,6 +452,11 @@ function Desk({ email, profileId }) {
             </li>)}</ul>
           </details>}
         </article>
+        {!adaptiveLesson && hasPrimer(detail.id) && <CurriculumPrimer key={detail.id}
+          concept={detail.id} onReady={() => continueLesson(detail)} />}
+        {adaptiveLesson && <LearningPractice profileId={profileId} key={track+detail.id} track={track} subject={detail.track}
+          topics={[detail.id,...lessonConcepts.map(row=>'concept:'+row.concept)]}
+          onFinish={() => setAdaptiveLesson(false)} />}
         <ConceptLab topic={detail.id} />
         {importedPanel}
       </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track + practiceTopic + practiceSubject} library={tab === 'library'} track={track} modules={catalog} initialTopic={practiceTopic} initialSubject={practiceSubject} conceptCounts={conceptCounts} /> : <>
