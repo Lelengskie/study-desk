@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { conceptLabel } from './concept-labels.mjs'
 import { rpc } from './api'
 import { analyticalConcepts as analytical, mathPath } from './math-path.mjs'
 import { activeStudyDays, journeyRewards } from './journey-progress.mjs'
@@ -45,7 +46,7 @@ function SubjectProgress({ label, count, total }) {
 }
 
 export default function Journey({
-  view, profileId, groups, modules, progress, attempts, topicCounts, subjectCounts, states, recommendations, subject, chooseSubject, openLearn, openLesson, openPath, openQuiz, openPractice,
+  view, profileId, groups, modules, progress, attempts, topicCounts, subjectCounts, conceptCounts, states, recommendations, subject, chooseSubject, openLearn, openLesson, openPath, openQuiz, openPractice,
 }) {
   const goalKey = 'study-desk:weekly-goal:' + profileId
   const [goal, setGoal] = useState(() => {
@@ -150,6 +151,17 @@ export default function Journey({
           </section>
         })}
       </section>
+      {conceptCounts.some(row => row.subject === subject) && <section className="journey-stage">
+        <h3>Imported practice by concept</h3>
+        <ol className="journey-steps">{conceptCounts.filter(row => row.subject === subject)
+          .sort((a, b) => conceptLabel(a.concept).localeCompare(conceptLabel(b.concept)))
+          .map(row => <li className="surface" key={row.concept}>
+            <div><strong>{conceptLabel(row.concept)}</strong><p>{row.imported} answer-ready</p></div>
+            <button className="secondary" onClick={() => openPractice(row.subject, row.concept)}>
+              Practice <span className="sr-only">{conceptLabel(row.concept)}</span>
+            </button>
+          </li>)}</ol>
+      </section>}
       <section className="surface journey-banner">
         <div><h3>Examination practice</h3><p>Apply what you learned with verified topic questions or answer-ready reviewer practice.</p></div>
         <div className="actions">

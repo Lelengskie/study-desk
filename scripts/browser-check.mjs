@@ -81,6 +81,9 @@ try {
       weeklyGoal = route.request().postDataJSON()?.new_goal ?? weeklyGoal
       return send(weeklyGoal)
     }
+    if (path.endsWith('/v21_concept_counts')) return send([
+      { subject: 'Numerical Ability', concept: 'fractions', imported: 9 }
+    ])
     if (path.endsWith('/v21_subject_counts')) return send([
       { subject: 'Numerical Ability', imported: 35, verified: 12, subject_only: 30 }
     ])
@@ -115,6 +118,12 @@ try {
     }
     if (path === '/functions/v1/tutor') {
       const value = route.request().postDataJSON()
+      if (value.mode === 'allowance') return send({ used: 1, limit: 5, remaining: 4, resets_at: new Date(Date.now()+3600000).toISOString() })
+      if (value.mode === 'hybrid') {
+        assert.equal(value.language,'taglish')
+        assert.equal(value.style,'steps')
+        return send({ status: 'daily_limit' })
+      }
       assert.deepEqual(value, { question_id: 'sequence-01', use_ai: true })
       tutorCalls += 1
       return send({ round_id: 'test-round', status: 'daily_limit', explanation: null, skill: 'Compare the gaps.',
@@ -146,6 +155,7 @@ try {
   await page.getByRole('button', { name: 'Study Today', exact: true }).click()
   await page.getByLabel('Weekly goal').selectOption('5')
   await page.waitForFunction(() => !document.querySelector('.journey-goal select').disabled)
+  await page.evaluate(id => localStorage.removeItem('study-desk:weekly-goal:' + id),user.id)
   await page.reload()
   await page.getByRole('button', { name: 'Explore subjects' }).click()
   await page.getByRole('heading', { name: 'Explore subjects' }).waitFor()
@@ -155,6 +165,11 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
   await page.getByRole('button', { name: 'Open Numerical Ability roadmap' }).click()
   await page.getByRole('heading', { name: 'Foundation', level: 3 }).waitFor()
+  await page.getByRole('heading', { name: 'Imported practice by concept' }).waitFor()
+  await page.getByRole('button', { name: 'Practice Adding fractions' }).click()
+  assert.equal(await page.getByLabel('Topic').inputValue(), 'concept:fractions')
+  await page.getByRole('button', { name: 'Learn', exact: true }).click()
+  await page.getByRole('button', { name: 'Open Numerical Ability roadmap' }).click()
 
   await page.getByRole('button', { name: 'Open lesson: Number patterns' }).click()
   await page.getByRole('heading', { name: 'Percent means out of 100' }).waitFor()
@@ -237,6 +252,12 @@ try {
   await page.getByLabel('Sample option', { exact: true }).check()
   await page.getByRole('button', { name: 'Check answer availability' }).click()
   await page.getByText('Answer: Sample option', { exact: true }).waitFor()
+  await page.getByRole('button',{name:'Check application allowance'}).click()
+  await page.getByText(/1 used · 4 remaining in the application allowance/).waitFor()
+  await page.getByLabel('Tutor language').selectOption('taglish')
+  await page.getByLabel('Tutor help').selectOption('steps')
+  await page.getByRole('button',{name:'Request AI explanation'}).click()
+  await page.getByText(/Daily tutor allowance reached/).waitFor()
   await page.getByRole('button', { name: 'Bookmark', exact: true }).click()
   await page.getByRole('button', { name: 'Remove bookmark' }).waitFor()
   await page.getByLabel('Report a problem').fill('Synthetic feedback')

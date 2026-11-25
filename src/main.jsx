@@ -217,6 +217,7 @@ function Desk({ email, profileId }) {
   const [journeySubject, setJourneySubject] = useState(null)
   const [topicCounts, setTopicCounts] = useState({})
   const [subjectCounts, setSubjectCounts] = useState(null)
+  const [conceptCounts, setConceptCounts] = useState([])
   const [catalog, setCatalog] = useState(null)
   const [progress, setProgress] = useState(emptyProgress)
   const [track, setTrack] = useState(() => localStorage.getItem('reviewer-track') === 'subprofessional' ? 'subprofessional' : 'professional')
@@ -282,6 +283,10 @@ function Desk({ email, profileId }) {
       if (active) setTopicCounts(Object.fromEntries(rows.map(row => [row.topic, row])))
     }).catch(() => {})
     setSubjectCounts(null)
+    setConceptCounts([])
+    rpc('v21_concept_counts', { exam_level: track }).then(rows => {
+      if (active && Array.isArray(rows)) setConceptCounts(rows)
+    }).catch(() => {})
     rpc('v21_subject_counts', { exam_level: track }).then(rows => {
       if (active) setSubjectCounts(rows)
     }).catch(() => {})
@@ -325,6 +330,11 @@ function Desk({ email, profileId }) {
   const recommendations = dailyConcepts(conceptRows, mathPath)
   const conceptDue = Object.keys(states).filter(id => states[id].dueNow && states[id].unused.length)
   const weak = Object.keys(states).filter(id => states[id].weak)
+  function openImported(subject, concept) {
+    navigate('practice')
+    setPracticeSubject(subject)
+    if (concept) setPracticeTopic('concept:' + concept)
+  }
   function openLesson(module) {
     setDetail(module)
     window.scrollTo(0, 0)
@@ -367,8 +377,9 @@ function Desk({ email, profileId }) {
       {pathStart ? <>
         <button className="quiet back" onClick={() => setPathStart(null)}>Back to {tab === 'repeat' ? 'reviews' : journeySubject || 'study plan'}</button>
         <MathPath key={pathStart} initialConcept={pathStart} openImported={concept => {
-          navigate('practice')
-          setPracticeSubject(analyticalConcepts.has(concept) ? 'Analytical Ability' : 'Numerical Ability')
+          const hasNumericalSequence = concept === 'sequence' && conceptCounts.some(row => row.concept === concept && row.subject === 'Numerical Ability')
+          const subject = analyticalConcepts.has(concept) && !hasNumericalSequence ? 'Analytical Ability' : 'Numerical Ability'
+          openImported(subject, conceptCounts.some(row => row.subject === subject && row.concept === concept) ? concept : null)
         }} />
       </> : flow ? <>
         <button className="quiet back" onClick={() => { setFlow(null); setError('') }}>End session</button>
@@ -390,7 +401,7 @@ function Desk({ email, profileId }) {
           </div>
         </article>
         <ConceptLab topic={detail.id} />
-      </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track + practiceTopic + practiceSubject} library={tab === 'library'} track={track} modules={catalog} initialTopic={practiceTopic} initialSubject={practiceSubject} /> : <>
+      </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track + practiceTopic + practiceSubject} library={tab === 'library'} track={track} modules={catalog} initialTopic={practiceTopic} initialSubject={practiceSubject} conceptCounts={conceptCounts} /> : <>
         <header className="page-head"><h1>{page[0]}</h1><p>{page[1]}</p></header>
         {tab === 'today' && <section className="surface concept-lab">
           <h2>Study today</h2>
@@ -419,12 +430,9 @@ function Desk({ email, profileId }) {
             Review {mathPath[id].title.toLowerCase()}</button>)}</div>
         </section>}
         {['today','learn','master'].includes(tab) && <Journey view={tab} profileId={profileId} groups={groups} modules={modules} progress={progress}
-          attempts={conceptRows} topicCounts={topicCounts} subjectCounts={subjectCounts} states={states} recommendations={recommendations} subject={journeySubject}
+          attempts={conceptRows} topicCounts={topicCounts} subjectCounts={subjectCounts} conceptCounts={conceptCounts} states={states} recommendations={recommendations} subject={journeySubject}
           chooseSubject={chooseJourneySubject} openLearn={() => navigate('learn')} openLesson={openLesson} openPath={openPath}
-          openQuiz={() => navigate('quiz')} openPractice={subject => {
-            navigate('practice')
-            setPracticeSubject(subject)
-          }} />}
+          openQuiz={() => navigate('quiz')} openPractice={openImported} />}
         {!modules.length && <div className="surface empty"><h2>Study content is waiting to be imported</h2><p>Ask the study desk owner to finish the private import.</p></div>}
         {['quiz', 'master'].includes(tab) && groups.map(group => <section className="topic-group" key={group}>
           <h2>{group}</h2>

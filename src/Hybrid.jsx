@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { client, rpc } from './api'
 import PracticeResponse from './PracticeResponse'
 import MathText from './MathText'
+import { conceptLabel } from './concept-labels.mjs'
 import { equivalentNumber } from './practice-response.mjs'
 
 const statuses = {
@@ -11,7 +12,7 @@ const statuses = {
   conflicting_answer: 'Conflicting answers · under review'
 }
 
-export default function Hybrid({ library, track, modules, initialTopic = '', initialSubject = '' }) {
+export default function Hybrid({ library, track, modules, initialTopic = '', initialSubject = '', conceptCounts = [] }) {
   const [filters, setFilters] = useState({ q: '', subject: initialSubject, topic: initialTopic, source: '', status: '', level: track })
   const [query, setQuery] = useState(filters)
   const [page, setPage] = useState({ rows: [], after: '', previous: [] })
@@ -78,6 +79,8 @@ export default function Hybrid({ library, track, modules, initialTopic = '', ini
       <label>Topic <select value={filters.topic} onChange={event => change('topic', event.target.value)}>
         <option value="">All topics</option>{modules.filter(module => !filters.subject || module.track === filters.subject)
           .map(module => <option key={module.id} value={module.id}>{module.title}</option>)}
+        {!library && filters.subject && conceptCounts.filter(row => row.subject === filters.subject)
+          .map(row => <option key={row.concept} value={'concept:' + row.concept}>{conceptLabel(row.concept)} · {row.imported}</option>)}
       </select></label>
       <label>Track <select value={filters.level} onChange={event => change('level', event.target.value)}>
         <option value="">All tracks</option><option value="professional">Professional</option>
@@ -139,7 +142,11 @@ function PracticeCard({ item, updateSaved }) {
   const [choice, setChoice] = useState('')
   const [submitted, setSubmitted] = useState('')
   const [answer, setAnswer] = useState(null)
-  const [ai, setAi] = useState(null)
+  const [ai, setAi] = useState([])
+  const [tutorLanguage, chooseTutorLanguage] = useState('en')
+  const [tutorStyle, chooseTutorStyle] = useState('explain')
+  const [allowance, setAllowance] = useState(null)
+  const [clock, setClock] = useState(Date.now)
   const [report, setReport] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -162,8 +169,23 @@ function PracticeCard({ item, updateSaved }) {
     try { await action() } catch (problem) { setError(problem.message) }
     finally { setBusy(false) }
   }
+  async function checkAllowance() {
+    const { data, error: problem } = await client.functions.invoke('tutor', { body: { mode: 'allowance' } })
+    if (problem || !data?.resets_at) throw new Error('Application allowance is unavailable.')
+    setClock(Date.now())
+    setAllowance(data)
+  }
+  useEffect(() => {
+    if (!allowance) return
+    const timer = setInterval(() => setClock(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [allowance])
+  const resetSeconds = allowance ? Math.max(0, Math.ceil((Date.parse(allowance.resets_at) - clock)/1000)) : 0
+  const countdown = [Math.floor(resetSeconds/3600), Math.floor(resetSeconds/60)%60, resetSeconds%60]
+    .map(n => String(n).padStart(2,'0')).join(':')
   const verified = item.status === 'independently_verified'
   const modelAnswer = answer?.answer_text ?? answer?.answer
+  const present = text => item.subject === 'Numerical Ability' ? <MathText text={text} /> : text
   return <article className="hybrid-practice-card">
     <h2>{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem}</h2><p>{statuses[item.status]}</p>
     {typed ? (context ? <PracticeResponse item={context} math={item.subject === 'Numerical Ability'} response={choice} change={setChoice} /> :
@@ -183,25 +205,47 @@ function PracticeCard({ item, updateSaved }) {
         await rpc('hybrid_feedback', { question_id: item.id, bookmark: !item.saved })
         updateSaved(item.id, !item.saved)
       })}>{item.saved ? 'Remove bookmark' : 'Bookmark'}</button>
-      {!verified && <button className="secondary" disabled={busy || !choice} onClick={() => act(async () => {
+    </div>
+    {!verified && <section className="concept-worked" aria-label="AI tutor">
+      <div className="actions">
+        <label>Tutor language <select value={tutorLanguage} onChange={event => chooseTutorLanguage(event.target.value)}>
+          <option value="en">English</option><option value="fil">Filipino</option><option value="taglish">Taglish</option>
+        </select></label>
+        <label>Tutor help <select value={tutorStyle} onChange={event => chooseTutorStyle(event.target.value)}>
+          <option value="explain">Explain</option><option value="simpler">Explain more simply</option>
+          <option value="steps">Explain each calculation</option><option value="example">Give another example</option>
+          <option value="hint">Give a hint</option>
+        </select></label>
+        <button className="secondary" disabled={busy} onClick={() => act(checkAllowance)}>Check application allowance</button>
+      </div>
+      {allowance && <p>{allowance.used} used · {allowance.remaining} remaining in the application allowance · resets in {countdown}.
+        Cached explanations can still be available. Provider-wide quota is not reported here.</p>}
+      <button className="secondary" disabled={busy || !choice} onClick={() => act(async () => {
         const { data, error: problem } = await client.functions.invoke('tutor', {
-          body: { question_id: item.id, mode: 'hybrid', use_ai: true }
+          body: { question_id: item.id, mode: 'hybrid', use_ai: true, language: tutorLanguage, style: tutorStyle }
         })
         if (problem) throw new Error((await problem.context?.json?.().catch(() => null))?.error || 'AI explanation unavailable.')
-        setAi(data)
-      })}>Request AI explanation</button>}
-    </div>
+        setAi(history => [...history.slice(-5),data])
+        if (allowance) {
+          try { await checkAllowance() } catch { setAllowance(null) }
+        }
+      })}>Request AI explanation</button>
+      </section>}
+
     {answer && <div role="status">
       {modelAnswer && <p>{typed ? (answer.exact_value != null
         ? equivalentNumber(submitted, answer.exact_value) ? 'Correct · ' : 'Try again · '
         : 'Self-check · ') : submitted === answer.answer ? 'Correct · ' : 'Incorrect · '}Your answer: {
         options.find(option => (option.id ?? option.label) === submitted)?.text ?? submitted
       }</p>}
-      <p>{modelAnswer ? 'Answer: ' +
-      (options.find(option => (option.id ?? option.label) === answer.answer)?.text ?? modelAnswer)
-      : statuses[answer.status]}{answer.explanation && ' · ' + answer.explanation}</p>
+      <p>{modelAnswer ? <>Answer: {present(options.find(option =>
+        (option.id ?? option.label) === answer.answer)?.text ?? modelAnswer)}</>
+        : statuses[answer.status]}{answer.explanation && <> · {present(answer.explanation)}</>}</p>
     </div>}
-    {ai && <p role="status">{ai.explanation ? 'AI-generated suggestion · ' + ai.explanation : 'AI explanation unavailable.'}</p>}
+    {ai.map((turn,index) => <p key={index} role="status">{turn.explanation
+      ? <>AI-generated suggestion · {present(turn.explanation)}</>
+      : turn.status === 'daily_limit' ? 'Daily tutor allowance reached. Your stored explanation is still available.'
+        : 'AI explanation unavailable.'}</p>)}
     <form className="hybrid-report" onSubmit={event => {
       event.preventDefault()
       void act(async () => {

@@ -20,7 +20,8 @@ test('Edge verifies tokens, hides practice keys, sends only skill text, and fall
   let user = { id: 'private-user-id', email: 'private-student@example.com' }
   let reservationCalls = 0
   let hybrid = false
-  let cached = null
+  let cached = new Map()
+  let hybridKey
   const oldFetch = globalThis.fetch
   t.after(() => {
     delete globalThis.Deno
@@ -39,17 +40,22 @@ test('Edge verifies tokens, hides practice keys, sends only skill text, and fall
     assert.equal(key, 'test-service')
     return {
       rpc: async (name, args) => {
+        if (name === 'v21_tutor_allowance') {
+          assert.equal(args.learner, user.id)
+          return { data: { used: 1, limit: 5, remaining: 4, resets_at: '2026-11-26T08:00:00Z' } }
+        }
         if (hybrid) {
           if (name === 'hybrid_tutor_prepare') {
             assert.equal(args.learner, user.id)
             assert.equal(args.question, 'a'.repeat(64))
             assert.deepEqual([args.user_cap, args.project_cap], [5, 12])
-            return { data: cached ? { status: 'ai', explanation: cached }
+            hybridKey = args.model_key
+            return { data: cached.has(hybridKey) ? { status: 'ai', explanation: cached.get(hybridKey) }
               : { status: 'ready', stem: 'Local practice fixture?', options: [{ label: 'A', text: 'Example' }], revision: 'fixture' } }
           }
           assert.equal(name, 'hybrid_tutor_cache')
           assert.equal(args.revision, 'fixture')
-          cached = args.explanation
+          cached.set(args.model_key,args.explanation)
           return { data: null }
         }
         assert.equal(args.p_user, user.id)
@@ -73,6 +79,10 @@ test('Edge verifies tokens, hides practice keys, sends only skill text, and fall
     assert.match(request.body, hybrid ? /Local practice fixture/ : /Multiply two negative integers/)
     for (const privateValue of [user.id, user.email, 'private-round', 'arithmetic-06', 'student input', '98']) {
       assert.equal(request.body.includes(privateValue), false)
+    }
+    if (hybridKey?.endsWith(':taglish:steps')) {
+      assert.match(request.body,/Respond in Taglish/)
+      assert.match(request.body,/why each calculation is performed/)
     }
     if (providerStatus !== 200) return new Response(null, { status: providerStatus })
     const explanation = 'Two negative signs cancel. First multiply the absolute values. For example, negative two times negative five equals ten.'
@@ -119,13 +129,21 @@ test('Edge verifies tokens, hides practice keys, sends only skill text, and fall
   hybrid = true
   providerStatus = 200
   env.set('GEMINI_API_KEY', 'test-gemini')
-  const invokeHybrid = () => handle(new Request('https://tutor.invalid', {
+  const invokeHybrid = (extra = {}) => handle(new Request('https://tutor.invalid', {
     method: 'POST',
     headers: { Origin: 'https://reviewer.example.com', Authorization: 'Bearer test-session' },
-    body: JSON.stringify({ question_id: 'a'.repeat(64), use_ai: true, mode: 'hybrid' })
+    body: JSON.stringify({ question_id: 'a'.repeat(64), use_ai: true, mode: 'hybrid', ...extra })
   }))
   const hybridResult = await (await invokeHybrid()).json()
   assert.equal(hybridResult.status, 'ai')
   assert.deepEqual(await (await invokeHybrid()).json(), hybridResult)
   assert.equal(providerCalls, 3)
+  assert.equal((await invokeHybrid({ language: 'unsupported' })).status,400)
+  assert.equal((await (await invokeHybrid({ language: 'taglish', style: 'steps' })).json()).status, 'ai')
+  assert.equal((await (await invokeHybrid({ language: 'taglish', style: 'steps' })).json()).status, 'ai')
+  assert.equal(providerCalls, 4)
+  const allowance = await (await invokeHybrid({ mode: 'allowance' })).json()
+  assert.equal(allowance.remaining,4)
+  assert.equal(providerCalls,4)
+
 })

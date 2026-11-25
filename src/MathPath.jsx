@@ -64,7 +64,7 @@ export default function MathPath({ initialConcept = 'signed', openImported }) {
     <details key={concept} className="concept-worked">
       <summary>Understand the concept with a worked example</summary>
       <p><MathText text={example.question} /></p>
-      <ol>{example.steps.map(step => <li key={step}>{step}</li>)}</ol>
+      <ol>{example.steps.map(step => <li key={step}><MathText text={step} /></li>)}</ol>
       <p>Common mistake: {example.mistake}</p>
     </details>
     <h3>Try it independently</h3>
@@ -129,7 +129,7 @@ function Variation({ concept, entry, state, sync, refresh }) {
       </div>
     </form>
     <p role="status">{feedback}</p>
-    {revealed > 0 && <ol>{problem.steps.slice(0, revealed).map(step => <li key={step}>{step}</li>)}</ol>}
+    {revealed > 0 && <ol>{problem.steps.slice(0, revealed).map(step => <li key={step}><MathText text={step} /></li>)}</ol>}
     {revealed > 0 && concept === 'syllogism' && <div className="logic-groups" aria-label="Groups in the deduction">
       Badge holders
       <div>Members <div>Volunteers</div></div>
