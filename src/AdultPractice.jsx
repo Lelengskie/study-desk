@@ -16,9 +16,9 @@ export default function AdultPractice({ concept, exercises, reason, onNextConcep
     events.record(result===null ? 'skipped' : 'completed')
     setIndex(index+1);setResponse('');setResult(null)
   }
-  return <div className="concept-worked" ref={events.element}>
-    <p className="small muted">{problem.level}</p>
-    <h3><MathText text={problem.question} /></h3>
+  return <div className="lesson-question" ref={events.element}>
+    <div className="lesson-question-meta"><span>Practice</span><span>{problem.level}</span></div>
+    <h3 className="lesson-question-title"><MathText text={problem.question} /></h3>
     {result === null && <form onSubmit={event=>{
       event.preventDefault()
       if (result !== null) return
@@ -32,13 +32,13 @@ export default function AdultPractice({ concept, exercises, reason, onNextConcep
       </fieldset>
       {result === null && <button className="primary">Check my calculation</button>}
     </form>}
-    {result===null && index+1<exercises.length && <button className="secondary" onClick={next}>Skip generated question</button>}
+    {result===null && index+1<exercises.length && <button className="quiet" onClick={next}>Skip question</button>}
     {message && <p role="status">{message}</p>}
     {result !== null && <>
       <AnswerFeedback correct={result} submitted={response} answer={problem.answer}>
         <h4>Worked solution</h4>
         <ol>{problem.steps.map((step,index) => <li key={index}><MathText text={step} /></li>)}</ol>
-        <p>Common mistake <MathText text={problem.mistake} /></p>
+        <aside className="lesson-tip"><strong>Exam tip</strong><p><MathText text={problem.mistake} /></p></aside>
       </AnswerFeedback>
       <div className="actions">
         {onNextConcept && <button className={index+1 === exercises.length ? 'primary' : 'quiet'} onClick={()=>{events.record('completed');onNextConcept()}}>Next concept</button>}

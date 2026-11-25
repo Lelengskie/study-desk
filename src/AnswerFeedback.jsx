@@ -24,7 +24,7 @@ export function AnswerChoices({ options, value, onChange, name, prompt, disabled
 export function AnswerFeedback({ correct, answer, submitted, explanation, children }) {
   return <div className="answer-feedback" data-state={correct === true ? 'correct' : correct === false ? 'incorrect' : 'neutral'}>
     <div className="feedback-summary" role="status">
-      <strong>{correct === true ? 'Correct! Well done.' : correct === false ? 'Incorrect' : 'Self-check'}</strong>
+      <strong className="feedback-title">{correct != null && <span className="feedback-icon" aria-hidden="true">{correct ? '✓' : '×'}</span>}<span>{correct === true ? 'Correct! Well done.' : correct === false ? 'Incorrect' : 'Self-check'}</span></strong>
       {(submitted != null || answer != null) && <dl className="feedback-comparison">
         {submitted != null && <div><dt>Your answer</dt><dd><MathText text={submitted} /></dd></div>}
         {answer != null && <div><dt>Correct answer</dt><dd><MathText text={answer} /></dd></div>}

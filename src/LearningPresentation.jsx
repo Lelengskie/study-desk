@@ -28,14 +28,17 @@ const subjectIcons = {
   'Clerical Ability': 'clerical',
 }
 
-export function LearningHeader({ title, subject, stage, mastery, mastered }) {
+export function LearningHeader({ title, subject, stage, mastery, mastered, children }) {
   return <header className={subjectIcons[subject] ? "learning-header journey-" + subjectIcons[subject] : "learning-header"}>
+    <div className="learning-header-top">
     <div className="learning-header-title">
       {subject && <span className="learning-subject-icon"><SubjectIcon subject={subjectIcons[subject]} /></span>}
       <div>{subject && <span className="learning-context">{subject}</span>}<h3>{title}</h3></div>
     </div>
+    {children}
+    </div>
     {mastery && <p className="mastery-label"><strong>Concept mastery</strong><span>{mastery}</span></p>}
     {mastered !== undefined && <progress className="mastery-meter" value={Number(mastered)} max={1} aria-label="Concept mastery" />}
-    <LearningStages active={stage} />
+    <span className="sr-only">Learning stage: {stage}</span>
   </header>
 }

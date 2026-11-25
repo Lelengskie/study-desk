@@ -56,10 +56,10 @@ export default function LearningPractice({ subject, track, topics, onFinish, onC
 
   if (hideWhenEmpty && result === 'finished') return null
   const checkpoint = result === true && correctCount >= 2 && onCheckpoint
-  return <section className="surface concept-lab">
-    <h2>Apply what you learned</h2>
+  return <section className="lesson-question concept-lab">
+    <h2 className="sr-only">Apply what you learned</h2>
     {busy && <p role="status">Finding the next question…</p>}
-    {item && <div ref={events.element}><p className="small muted">{item.related ? 'Related CSE reviewer' : 'CSE reviewer'}</p>
+    {item && <div ref={events.element}><div className="lesson-question-meta"><span>Practice</span><span>{item.related ? 'Related CSE reviewer' : 'CSE reviewer'}</span></div>
       <PracticeCard key={item.id} item={item}
         updateSaved={(id,saved) => setItem(current => current?.id === id ? { ...current, saved } : current)}
         onResult={value => {

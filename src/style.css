@@ -439,3 +439,55 @@ select { appearance: none; border: 1px solid #c9d2e7; padding-inline-end: 2.1rem
 .study-dialog { width: min(28rem, calc(100% - 2rem)); border: 1px solid #ccd8ec; border-radius: 1rem; padding: 1.25rem; color: #172744; background: white; }
 .study-dialog::backdrop { background: rgb(17 32 64 / .48); }
 .study-dialog .hybrid-report { display: grid; gap: .75rem; }
+
+/* Focused lesson layout */
+.focused-lesson { display: grid; gap: 1.25rem; min-width: 0; }
+.focused-lesson .learning-header { background: linear-gradient(120deg, var(--tint, #eff6ff), #e8f1ff); border-color: #ccdbef; padding: clamp(1rem, 3vw, 1.9rem); }
+.learning-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.learning-header-top h3 { font-size: clamp(1.35rem, 3vw, 2.15rem); line-height: 1.15; }
+.learning-header-top .learning-subject-icon { flex-basis: clamp(2.75rem, 5vw, 4.1rem); height: clamp(2.75rem, 5vw, 4.1rem); }
+.learning-header-top .learning-context { color: var(--ink); }
+.focused-lesson .mastery-label { padding-top: .8rem; border-top: 1px solid #c9d9ef; margin-top: .6rem; }
+.focused-lesson .mastery-meter { height: .7rem; }
+.learning-header-top > .lesson-options { position: relative; margin: 0; flex-shrink: 0; }
+.learning-header-top > .lesson-options > summary { box-sizing: border-box; display: flex; align-items: center; gap: .5rem; padding: .6rem .8rem; min-height: 44px; border: 1px solid #a7b9e0; border-radius: .75rem; background: #f5f9ff; color: #122654; font-weight: 650; list-style: none; }
+.learning-header-top > .lesson-options > summary::before { content: '⋯'; font-weight: 900; }
+.lesson-menu { position: absolute; z-index: 5; right: 0; top: calc(100% + .35rem); width: min(20rem, calc(100vw - 3rem)); padding: .75rem; border: 1px solid #cad7ea; border-radius: .85rem; background: #fff; box-shadow: 0 10px 28px #10244726; }
+.lesson-menu .actions { display: grid; gap: .25rem; margin: 0; }
+.lesson-menu .actions button, .lesson-menu .quiet { text-align: left; background: transparent; color: #172c55; }
+.lesson-question { background: #fff; min-width: 0; border: 1px solid #cfdcf1; box-shadow: 0 8px 24px #16396e0d; border-radius: 1rem; padding: clamp(1rem, 3vw, 2rem); }
+.lesson-question-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; color: #3a527d; margin-bottom: 1.15rem; font-size: .9rem; font-weight: 650; }
+.lesson-question-meta > :first-child { color: #194cc1; background: #e4eeff; border-radius: 999px; padding: .25rem .75rem; }
+.lesson-question .lesson-question-title, .lesson-question .answer-prompt { font-size: clamp(1.16rem, 2.3vw, 1.55rem); line-height: 1.38; color: #132652; margin-bottom: 1rem; }
+.lesson-question .study-answer-input { width: 100%; background: #f8faff; }
+.lesson-question .primary { width: 100%; min-height: 47px; background: #1649cd; color: white; }
+.lesson-question .primary:hover:not(:disabled) { background: #123da9; }
+.lesson-question .primary:disabled { opacity: .65; }
+.lesson-question .feedback-title { display: flex; align-items: center; gap: .7rem; font-size: 1.13rem; }
+.feedback-icon { background: #174387; color: white; display: grid; place-items: center; width: 1.8rem; height: 1.8rem; flex: 0 0 1.8rem; line-height: 1; border-radius: 50%; }
+[data-state="correct"] .feedback-icon { background: #117b45; }
+[data-state="incorrect"] .feedback-icon { background: #b9253d; }
+.lesson-question .feedback-comparison { border-radius: .7rem; padding: .6rem .8rem; background: #ffffffa6; }
+.lesson-question .feedback-teaching { padding: 1.15rem; line-height: 1.6; }
+.lesson-question .feedback-teaching ol { padding-inline-start: 1.5rem; }
+.lesson-question .feedback-teaching li + li { margin-top: .55rem; }
+.lesson-tip { background: #fff1ca; border-radius: .75rem; padding: .75rem 1rem; color: #513800; }
+.lesson-tip p { margin: .25rem 0 0; }
+@media (max-width: 580px) {
+  .focused-lesson { gap: .85rem; }
+  .learning-header-top > .lesson-options > summary { padding: .45rem; font-size: .76rem; }
+  .learning-header-top { gap: .35rem; }
+  .learning-header-title { gap: .5rem; }
+}
+
+.focused-lesson.concept-lab { padding: 0; }
+.lesson-question .hybrid-practice-card { padding: 0; }
+.lesson-question .answer-choice { min-height: 3.15rem; }
+.lesson-question .answer-choice[data-state="selected"] { background: #e6efff; border-color: #245ae5; }
+.lesson-question .answer-choice input { accent-color: #1649cd; }
+
+@media (max-width: 580px) {
+  .sidebar nav { grid-template-columns: repeat(5, minmax(0,1fr)); }
+  .sidebar nav button { flex-direction: column; flex-wrap: nowrap; gap: .2rem; min-height: 46px; font-size: clamp(.65rem, 2.5vw, .76rem); }
+  .sidebar nav button svg { width: 16px; height: 16px; }
+}

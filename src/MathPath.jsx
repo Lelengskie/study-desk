@@ -84,11 +84,18 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
     setRemedy(true)
     setFoundation(hasLegacy && !exercises)
   }
-  return <section className="surface concept-lab">
+  return <section className="focused-lesson concept-lab">
     <h2 className="sr-only">Math foundations</h2>
     <LearningHeader title={entry.title} subject={coverage?.subject}
       stage={assessment ? 'Test' : applying ? 'Apply' : state.dueNow && fresh.length ? 'Master' : 'Learn'}
-      mastery={state.mastery ? 'Mastered' : 'Mastery pending'} mastered={Boolean(state.mastery)} />
+      mastery={state.mastery ? 'Mastered' : 'Mastery pending'} mastered={Boolean(state.mastery)}>
+    <details className="lesson-options"><summary>Lesson options</summary><div className="lesson-menu">
+    <nav className="actions" aria-label="Lesson navigation">
+      {previousConcept && <button className="secondary" onClick={() => choose(previousConcept)}>Previous concept</button>}
+      {nextConcept && <button className="secondary" onClick={() => choose(nextConcept)}>Skip concept</button>}
+      {(fresh.length > 0 || exercises || assessment) && <button className="secondary" onClick={() => {setApplication(false);setFoundation(false);setAssessment(value=>!value)}}>
+        {assessment ? 'Return to lesson' : 'Test my knowledge'}</button>}
+    </nav>
     <label className="study-picker">Concept <select value={concept} onChange={event => choose(event.target.value)}>
       {Object.entries(mathPath).map(([id, lesson]) => <option key={id} value={id}>{lesson.title}</option>)}
     </select></label>
@@ -104,13 +111,8 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
       {state.unused.length === 0 && <p>All tracked variations have been tried. You can revisit them for practice.</p>}
     </details>}
     {followUp && <p>{followUp}</p>}
-    <details className="lesson-options"><summary>Lesson options</summary>
-    <nav className="actions" aria-label="Lesson navigation">
-      {previousConcept && <button className="secondary" onClick={() => choose(previousConcept)}>Previous concept</button>}
-      {nextConcept && <button className="secondary" onClick={() => choose(nextConcept)}>Skip concept</button>}
-      {(fresh.length > 0 || exercises || assessment) && <button className="secondary" onClick={() => {setApplication(false);setFoundation(false);setAssessment(value=>!value)}}>
-        {assessment ? 'Return to lesson' : 'Test my knowledge'}</button>}
-    </nav></details>
+    </div></details>
+    </LearningHeader>
     {foundation && <p>{pool.length} exercises in this optional collection</p>}
     {coverage?.imported > 0 && <details className="study-resource-note"><summary>Reviewer resources</summary><p>{coverage.imported} questions linked to this concept</p></details>}
     {!assessment && hasLegacy && <>
@@ -141,10 +143,10 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
       setApplication(false);setFoundation(true)
     }}>{templateQuality[concept] === 'foundation' ? 'Start optional foundation exercise' : 'Start targeted generated exercise'}</button>}
     {!applying && (assessment || foundation) && <h3>{assessment ? 'Independent knowledge check' : state.dueNow && fresh.length > 0 ? 'Check what you remember' : 'Try it independently'}</h3>}
-    {sync !== 'loading' && !applying && !adultCheck && (assessment || foundation) && <Variation
+    {sync !== 'loading' && !applying && !adultCheck && (assessment || foundation) && <div className="lesson-question"><Variation
       key={'variation-' + concept + '-' + assessment} concept={concept} assessment={assessment} entry={entry} pool={pool} fresh={fresh}
       sync={sync} refresh={refresh} onNextConcept={nextConcept ? () => choose(nextConcept) : null}
-      onOriginalPractice={!assessment && coverage?.imported ? () => {setFoundation(false);setApplication(true)} : null} />}
+      onOriginalPractice={!assessment && coverage?.imported ? () => {setFoundation(false);setApplication(true)} : null} /></div>}
     {applying && renderPractice?.(concept,reviewFoundation,selectedBand || band,() => {setReviewerEmpty(true);setApplication(false)})}
     {nextConcept && (applying || !exercises && !assessment && !foundation) && <button className="secondary" onClick={() => choose(nextConcept)}>Next concept</button>}
   </section>

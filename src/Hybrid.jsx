@@ -202,7 +202,7 @@ export function PracticeCard({ item, updateSaved, onResult }) {
     : null
   const explanation = manual?.explanation ?? grammar ?? answer?.explanation
   return <article className="hybrid-practice-card">
-    <h2>{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem}</h2>
+    <h2 className="lesson-question-title">{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem}</h2>
     <details className="lesson-options"><summary>Answer source</summary>
       <p>{verified ? 'Independently checked · Unscored practice' : statuses[item.status]}</p>
     </details>

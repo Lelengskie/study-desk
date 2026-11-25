@@ -31,15 +31,12 @@ export default function CuratedSkill({ skill, subject, continuePractice, onProgr
     catch { setError('The activity changed or could not be saved. Load the current question again.') }
     finally { setBusy(false) }
   }
-  return <section className="surface concept-lab">
+  return <section className="focused-lesson concept-lab">
     <LearningHeader title={item?.title ?? 'Lesson'} subject={subject}
       stage={reviewing ? 'Apply' : item?.stage === 5 ? 'Master' : item?.stage >= 3 ? 'Test' : 'Learn'}
       mastery={item ? item.mastered ? 'Mastered' : item.independent_passes ? 'Learning' : 'Not started' : undefined}
-      mastered={item ? Boolean(item.mastered) : undefined} />
-    {busy && <p role="status">Loading activity…</p>}
-    {error && <><p role="alert">{error}</p><button onClick={load}>Reload activity</button></>}
-    {item && !error && <>
-      <details className="lesson-options"><summary>Lesson options</summary>
+      mastered={item ? Boolean(item.mastered) : undefined}>
+      <details className="lesson-options"><summary>Lesson options</summary><div className="lesson-menu">
         <nav className="actions" aria-label="Lesson navigation">
           {onPreviousConcept && <button className="quiet" onClick={onPreviousConcept}>Previous concept</button>}
           {onNextConcept && <button className="quiet" onClick={onNextConcept}>Next concept</button>}
@@ -47,8 +44,13 @@ export default function CuratedSkill({ skill, subject, continuePractice, onProgr
           {reviewer && <button className="quiet" onClick={() => setReviewing(value => !value)}>
             {reviewing ? 'Open guided lesson' : 'Try reviewer questions'}</button>}
         </nav>
-      </details>
-      {reviewing ? reviewer(() => setReviewing(false)) : <>
+      </div></details>
+    </LearningHeader>
+    {busy && <p role="status">Loading activity…</p>}
+    {error && <><p role="alert">{error}</p><button onClick={load}>Reload activity</button></>}
+    {item && !error && <>
+
+      {reviewing ? reviewer(() => setReviewing(false)) : <div className="lesson-question">
       <p><MathText text={item.lesson} /></p>
       <details key={round} className="concept-worked" onToggle={event => {if(event.currentTarget.open) setAssisted(true)}}><summary>Worked example</summary><p><MathText text={item.example} /></p></details>
       {!waiting && item.stage < 6 && <p className="small muted">{labels[item.stage]}</p>}
@@ -68,7 +70,7 @@ export default function CuratedSkill({ skill, subject, continuePractice, onProgr
           {item.mastered && onNextConcept ? 'Continue to next concept' : result.correct ? 'Continue learning' : 'Try a similar question'}</button>
       </>}
       {(waiting || item.stage === 6) && <button className="primary" onClick={continuePractice}>Continue with reviewer practice</button>}
-      </>}
+      </div>}
     </>}
   </section>
 }
