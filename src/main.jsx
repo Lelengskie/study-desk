@@ -588,6 +588,43 @@ function Desk({ email, profileId, googleIdentity }) {
   </div>
 }
 
+function SetInvitedPassword() {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  async function save(event) {
+    event.preventDefault()
+    const fields = new FormData(event.currentTarget)
+    const password = String(fields.get('password'))
+    if (password !== fields.get('confirm')) {
+      setError('The passwords do not match.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      const { error } = await client.auth.updateUser({ password, data: { study_password_setup: false } })
+      if (error) throw error
+    } catch (problem) {
+      setError(problem.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return <main className="gate">
+    <Brand />
+    <section className="gate-card">
+      <h1>Set your Study Desk password</h1>
+      <p>Choose the password you’ll use when you sign in again.</p>
+      <form onSubmit={save}>
+        <label>New password<input name="password" type="password" autoComplete="new-password" minLength={12} required /></label>
+        <label>Confirm password<input name="confirm" type="password" autoComplete="new-password" minLength={12} required /></label>
+        {error && <p role="alert">{error}</p>}
+        <button className="primary" disabled={busy}>{busy ? 'Saving…' : 'Save password'}</button>
+      </form>
+    </section>
+  </main>
+}
+
 function App() {
   const [session, setSession] = useState(undefined)
   useEffect(() => {
@@ -596,6 +633,7 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
   if (client && session === undefined) return <main className="gate"><Brand /><p role="status">Checking your session…</p></main>
+  if (session?.user?.user_metadata?.study_password_setup === true) return <SetInvitedPassword />
   return session?.user ? <Desk key={session.user.id} email={session.user.email} profileId={session.user.id} googleIdentity={session.user.app_metadata?.provider === 'google'} /> : <SignIn />
 }
 
