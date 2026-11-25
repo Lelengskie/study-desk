@@ -1,6 +1,6 @@
 import { manualFractionExplanation } from './manual-fractions.mjs'
 import { AnswerChoices, AnswerFeedback } from './AnswerFeedback'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { client, rpc } from './api'
 import PracticeResponse from './PracticeResponse'
 import MathText from './MathText'
@@ -151,6 +151,8 @@ export function PracticeCard({ item, updateSaved, onResult }) {
   const [tutorStyle, chooseTutorStyle] = useState('explain')
   const [allowance, setAllowance] = useState(null)
   const [clock, setClock] = useState(Date.now)
+  const reportDialog = useRef(null)
+  const [reportError, setReportError] = useState('')
   const [report, setReport] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -194,27 +196,35 @@ export function PracticeCard({ item, updateSaved, onResult }) {
     : answer.answer == null ? null : submitted === answer.answer)
   const answerLabel = options.find(option => (option.id ?? option.label) === answer?.answer)?.text ?? modelAnswer
   const manual = answer && manualFractionExplanation(item.stem,answer.exact_value ?? answerLabel)
+  const grammar = answer && /^sheep[.!]?$/i.test(String(answerLabel).trim())
+    && /\bplural\b/i.test(item.stem) && /\bsheep\b/i.test(item.stem)
+    ? 'Sheep has the same singular and plural form: one sheep, five sheep. Do not add -s or -es. Deer and species follow the same pattern: one deer, five deer; one species, five species.'
+    : null
+  const explanation = manual?.explanation ?? grammar ?? answer?.explanation
   return <article className="hybrid-practice-card">
-    <h2>{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem}</h2><p>{item.answer_reliability === 'independently_verified' ? 'Independently validated answer · Unscored practice' : statuses[item.status]}</p>
-    {typed ? (context ? <PracticeResponse item={context} math={item.subject === 'Numerical Ability'} response={choice} change={setChoice} /> :
+    <h2>{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem}</h2>
+    <details className="lesson-options"><summary>Answer source</summary>
+      <p>{verified ? 'Independently checked · Unscored practice' : statuses[item.status]}</p>
+    </details>
+    {!answer && (typed ? (context ? <PracticeResponse item={context} math={item.subject === 'Numerical Ability'} response={choice} change={setChoice} /> :
       <p role="status">Loading question context…</p>) :
       <AnswerChoices name={'practice-'+item.id} options={options.map(option => ({id:option.id ?? option.label,text:option.text}))}
         value={answer ? submitted : choice} onChange={setChoice} disabled={busy || !!answer}
-        correct={answer?.answer} />}
+        correct={answer?.answer} />)}
     <div className="actions hybrid-actions">
-      <button className="secondary" disabled={!!answer || !choice.trim() || busy || (typed && !context)} onClick={() => act(async () => {
+      {!answer && <button className="primary" disabled={!choice.trim() || busy || (typed && !context)} onClick={() => act(async () => {
         const result = await rpc('hybrid_answer', { question_id: item.id })
         setSubmitted(choice)
         setAnswer(result)
         onResult?.(typed ? result.exact_value == null ? 'self-check' : equivalentNumber(choice,result.exact_value)
           : choice === result.answer)
-      })}>{typed ? 'Compare with the answer' : 'Check answer availability'}</button>
+      })}>Check answer</button>}
       <button className="quiet" disabled={busy} onClick={() => act(async () => {
         await rpc('hybrid_feedback', { question_id: item.id, bookmark: !item.saved })
         updateSaved(item.id, !item.saved)
       })}>{item.saved ? 'Remove bookmark' : 'Bookmark'}</button>
     </div>
-    {!verified && <section className="concept-worked" aria-label="AI tutor">
+    {!verified && <details className="concept-worked"><summary>Ask AI Tutor</summary>
       <div className="actions">
         <label>Tutor language <select value={tutorLanguage} onChange={event => chooseTutorLanguage(event.target.value)}>
           <option value="en">English</option><option value="fil">Filipino</option><option value="taglish">Taglish</option>
@@ -238,29 +248,40 @@ export function PracticeCard({ item, updateSaved, onResult }) {
           try { await checkAllowance() } catch { setAllowance(null) }
         }
       })}>Request AI explanation</button>
-      </section>}
+      </details>}
 
-    {answer && <AnswerFeedback correct={gradedCorrect} explanation={manual?.explanation ?? answer.explanation}>
+    {answer && <AnswerFeedback correct={gradedCorrect} answer={modelAnswer ? answerLabel : null}
+      submitted={options.find(option => (option.id ?? option.label) === submitted)?.text ?? submitted}
+      explanation={explanation}>
       {manual && <p><strong>Exam shortcut</strong> <MathText text={manual.shortcut} /></p>}
-      {!manual && answer.explanation_origin === 'deterministically_checked' && <p className="small muted">Deterministically checked worked explanation</p>}
-      {modelAnswer && <><p>{gradedCorrect === true ? 'Correct' : gradedCorrect === false ? 'Incorrect' : 'Self-check'} · Your answer: {
-        options.find(option => (option.id ?? option.label) === submitted)?.text ?? submitted}</p>
-        <p>Answer: {present(answerLabel)}</p></>}
+      {modelAnswer && !explanation && <p>A worked explanation is currently unavailable for this question.</p>}
       {!modelAnswer && <p>{statuses[answer.status]}</p>}
     </AnswerFeedback>}
     {ai.map((turn,index) => <p key={index} role="status">{turn.explanation
       ? <>AI-generated suggestion · {present(turn.explanation)}</>
       : turn.status === 'daily_limit' ? 'Daily tutor allowance reached. Your stored explanation is still available.'
         : 'AI explanation unavailable.'}</p>)}
+    <button className="quiet" onClick={() => {setReportError('');reportDialog.current.showModal()}}>Report a problem</button>
+    <dialog ref={reportDialog} className="study-dialog" aria-labelledby={'report-'+item.id}>
+    <h3 id={'report-'+item.id}>Report a problem</h3>
     <form className="hybrid-report" onSubmit={event => {
       event.preventDefault()
       void act(async () => {
-        await rpc('hybrid_feedback', { question_id: item.id, report })
-        setReport('')
-        setMessage('Report saved.')
+        setReportError('')
+        try {
+          await rpc('hybrid_feedback', { question_id: item.id, report: report.trim() })
+          setReport('')
+          setMessage('Report saved.')
+          reportDialog.current?.close()
+        } catch { setReportError('The report could not be saved. Try again.') }
       })
-    }}><label>Report a problem <input value={report} maxLength={500} onChange={event => setReport(event.target.value)} /></label>
-      <button className="quiet" disabled={busy || !report.trim()}>Send report</button></form>
+    }}><label>Describe the problem <input value={report} maxLength={500} onChange={event => setReport(event.target.value)} /></label>
+      {reportError && <p role="alert">{reportError}</p>}
+      <div className="actions">
+        <button className="quiet" type="button" disabled={busy} onClick={() => reportDialog.current.close()}>Cancel</button>
+        <button className="primary" disabled={busy || !report.trim()}>Send report</button>
+      </div>
+    </form></dialog>
     {message && <p role="status">{message}</p>}
     {error && <p role="alert">{error}</p>}
   </article>

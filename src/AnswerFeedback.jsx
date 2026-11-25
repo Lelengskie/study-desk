@@ -21,11 +21,18 @@ export function AnswerChoices({ options, value, onChange, name, prompt, disabled
   </fieldset>
 }
 
-export function AnswerFeedback({ correct, answer, explanation, children }) {
-  return <div className="answer-feedback" data-state={correct === true ? 'correct' : correct === false ? 'incorrect' : 'neutral'} role="status">
-    <strong>{correct === true ? 'Correct! Well done.' : correct === false ? "Incorrect. Here's why." : 'Self-check'}</strong>
-    {answer != null && <p>Correct answer: <MathText text={answer} /></p>}
-    {explanation && <div className="answer-explanation"><MathText text={explanation} /></div>}
-    {children}
+export function AnswerFeedback({ correct, answer, submitted, explanation, children }) {
+  return <div className="answer-feedback" data-state={correct === true ? 'correct' : correct === false ? 'incorrect' : 'neutral'}>
+    <div className="feedback-summary" role="status">
+      <strong>{correct === true ? 'Correct! Well done.' : correct === false ? 'Incorrect' : 'Self-check'}</strong>
+      {(submitted != null || answer != null) && <dl className="feedback-comparison">
+        {submitted != null && <div><dt>Your answer</dt><dd><MathText text={submitted} /></dd></div>}
+        {answer != null && <div><dt>Correct answer</dt><dd><MathText text={answer} /></dd></div>}
+      </dl>}
+    </div>
+    {(explanation || children) && <div className="feedback-teaching">
+      {explanation && <><h4>Explanation</h4><div className="answer-explanation"><MathText text={explanation} /></div></>}
+      {children}
+    </div>}
   </div>
 }

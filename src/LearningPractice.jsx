@@ -59,7 +59,7 @@ export default function LearningPractice({ subject, track, topics, onFinish, onC
   return <section className="surface concept-lab">
     <h2>Apply what you learned</h2>
     {busy && <p role="status">Finding the next question…</p>}
-    {item && <div ref={events.element}><p className="small muted">Original CSE Reviewer · Unscored learning practice</p><p>{item.related ? 'Related subject practice' : 'Practice for this lesson'}</p>
+    {item && <div ref={events.element}><p className="small muted">{item.related ? 'Related CSE reviewer' : 'CSE reviewer'}</p>
       <PracticeCard key={item.id} item={item}
         updateSaved={(id,saved) => setItem(current => current?.id === id ? { ...current, saved } : current)}
         onResult={value => {
@@ -77,10 +77,10 @@ export default function LearningPractice({ subject, track, topics, onFinish, onC
         void finishItem(checkpoint ? onCheckpoint : onFinish)
       } else if (result !== 'finished') {events.record('completed');void next(item?.id)}
     }}>{error ? 'Try again' : result === false && onFinish ? 'Review and try a simpler exercise'
-      : result === 'finished' && onFinish ? 'Continue learning' : checkpoint ? 'Continue to a verified check' : 'Next question'}</button>}
+      : result === 'finished' && onFinish ? 'Continue learning' : checkpoint ? 'Continue to a verified check' : result === false ? 'Try a similar question' : 'Continue learning'}</button>}
     {exactScope && item && result===null && !busy && <button className="secondary" onClick={()=>{
       events.record('skipped'); void next(item.id)
-    }}>Skip reviewer question</button>}
+    }}>Skip question</button>}
     {result === 'finished' && <p>You’ve reached the end of the available questions for this path.</p>}
   </section>
 }

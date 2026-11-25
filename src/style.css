@@ -409,3 +409,33 @@ select { appearance: none; border: 1px solid #c9d2e7; padding-inline-end: 2.1rem
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+.lesson-options { margin: .75rem 0; }
+.lesson-options summary { cursor: pointer; color: var(--accent); min-height: 2.25rem; }
+.mastery-meter { appearance: none; max-width: 22rem; border: 0; border-radius: 999px; background: #e3ebf5; }
+.mastery-meter::-webkit-progress-bar { border-radius: 999px; background: #e3ebf5; }
+.mastery-meter::-webkit-progress-value { border-radius: 999px; background: #245ab1; }
+.mastery-meter::-moz-progress-bar { border-radius: 999px; background: #245ab1; }
+
+.learning-header-title { display: flex; align-items: center; gap: .85rem; }
+.learning-subject-icon { display: grid; flex: 0 0 2.8rem; height: 2.8rem; place-items: center; color: white; background: #245ab1; border-radius: .85rem; }
+.learning-subject-icon svg { width: 1.45rem; height: 1.45rem; }
+.mastery-label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .35rem 1rem; margin-bottom: .45rem; }
+.mastery-meter { max-width: none; }
+.answer-feedback[data-state] { padding: 0; background: transparent; border: 0; }
+.feedback-summary, .feedback-teaching { padding: 1rem; border-radius: .85rem; background: #f0f5fc; }
+.answer-feedback[data-state="correct"] .feedback-summary { background: #e7f7ed; color: #14472d; }
+.answer-feedback[data-state="incorrect"] .feedback-summary { background: #fff0f1; color: #821c2d; }
+.feedback-teaching { color: var(--ink, #172744); margin-top: .65rem; }
+.feedback-teaching h4 { margin: 0 0 .55rem; }
+.feedback-comparison { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,8rem),1fr)); gap: .75rem; margin: .75rem 0 0; }
+.feedback-comparison dt { font-size: .85rem; }
+.feedback-comparison dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.feedback-comparison div:last-child dd { color: #14472d; }
+
+.learning-subject-icon, .learning-subject-icon .journey-icon { background: var(--subject, #245ab1); color: white; }
+.learning-subject-icon .journey-icon { width: 100%; min-height: 100%; }
+
+.study-dialog { width: min(28rem, calc(100% - 2rem)); border: 1px solid #ccd8ec; border-radius: 1rem; padding: 1.25rem; color: #172744; background: white; }
+.study-dialog::backdrop { background: rgb(17 32 64 / .48); }
+.study-dialog .hybrid-report { display: grid; gap: .75rem; }

@@ -12,7 +12,7 @@ import PracticeResponse from './PracticeResponse'
 import { rpc } from './api'
 import { analyticalConcepts, mathPath } from './math-path.mjs'
 import { equivalentNumber, rational } from './practice-response.mjs'
-import { advanceVariant, conceptState, dailyConcepts } from './concept-progress.mjs'
+import { advanceVariant, conceptState } from './concept-progress.mjs'
 
 const misconceptionPrompts = {
   possible_divisor_reciprocal_error: 'Did you multiply by one third? Count how many thirds fit. Use three as the multiplier.',
@@ -61,7 +61,6 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
   useEffect(() => { refresh() }, [refresh])
   const entry = mathPath[concept]
   const state = conceptState(rows, concept)
-  const daily = dailyConcepts(rows, mathPath)
   const last = rows.filter(row => row.concept === concept).at(-1)
   const followUp = misconceptionPrompts[last?.mistake]
   const prerequisite = entry.prerequisite && mathPath[entry.prerequisite]
@@ -86,7 +85,10 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
     setFoundation(hasLegacy && !exercises)
   }
   return <section className="surface concept-lab">
-    <h2>Math foundations</h2>
+    <h2 className="sr-only">Math foundations</h2>
+    <LearningHeader title={entry.title} subject={coverage?.subject}
+      stage={assessment ? 'Test' : applying ? 'Apply' : state.dueNow && fresh.length ? 'Master' : 'Learn'}
+      mastery={state.mastery ? 'Mastered' : 'Mastery pending'} mastered={Boolean(state.mastery)} />
     <label className="study-picker">Concept <select value={concept} onChange={event => choose(event.target.value)}>
       {Object.entries(mathPath).map(([id, lesson]) => <option key={id} value={id}>{lesson.title}</option>)}
     </select></label>
@@ -94,27 +96,21 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
       Review {prerequisite.title.toLowerCase()}
     </button>}
     {sync === 'unavailable' && <p role="status">Progress sync is unavailable. You can keep practicing.</p>}
-    {sync === 'ready' && <>
+    {sync === 'ready' && <details className="lesson-options">
+      <summary>Mastery evidence</summary>
       <p>{state.success} correct on {state.independent} independent variations.
         {state.mastery ? ' Mastery demonstrated.' : state.weak ? ' Review the concept or its prerequisite.' : ''}
         {state.dueNow ? ' Review due.' : state.due && ' Next review ' + new Date(state.due).toLocaleDateString() + '.'}</p>
-      {followUp && <p>{followUp}</p>}
-      {daily.length > 0 && <div className="actions" aria-label="Recommended today">
-        {daily.map(key => <button type="button" className="secondary" key={key} onClick={() => choose(key)}>
-          {mathPath[key].title}
-        </button>)}
-      </div>}
       {state.unused.length === 0 && <p>All tracked variations have been tried. You can revisit them for practice.</p>}
-    </>}
-    <LearningHeader title={entry.title} subject={coverage?.subject}
-      stage={assessment ? 'Test' : applying ? 'Apply' : state.dueNow && fresh.length ? 'Master' : 'Learn'}
-      mastery={state.mastery ? 'Mastered' : undefined} />
+    </details>}
+    {followUp && <p>{followUp}</p>}
+    <details className="lesson-options"><summary>Lesson options</summary>
     <nav className="actions" aria-label="Lesson navigation">
       {previousConcept && <button className="secondary" onClick={() => choose(previousConcept)}>Previous concept</button>}
       {nextConcept && <button className="secondary" onClick={() => choose(nextConcept)}>Skip concept</button>}
       {(fresh.length > 0 || exercises || assessment) && <button className="secondary" onClick={() => {setApplication(false);setFoundation(false);setAssessment(value=>!value)}}>
         {assessment ? 'Return to lesson' : 'Test my knowledge'}</button>}
-    </nav>
+    </nav></details>
     {foundation && <p>{pool.length} exercises in this optional collection</p>}
     {coverage?.imported > 0 && <details className="study-resource-note"><summary>Reviewer resources</summary><p>{coverage.imported} questions linked to this concept</p></details>}
     {!assessment && hasLegacy && <>
@@ -195,7 +191,7 @@ function Variation({ concept, entry, pool, fresh, sync, refresh, assessment, onN
   return <>
     <p className="small muted">{templateQuality[concept] === 'foundation' ? 'Foundation Exercise' : 'Generated Learning Exercise'}</p>
     <p className="answer-prompt" ref={events.element}><MathText text={problem.question} /></p>
-    <form onSubmit={check}>
+    {graded === null && <form onSubmit={check}>
       <fieldset disabled={busy || graded !== null} className="math-input-group">
         <PracticeResponse item={{}} math inputLabel="Your calculation" response={response}
           change={value => { change(value); show('') }} />
@@ -205,32 +201,36 @@ function Variation({ concept, entry, pool, fresh, sync, refresh, assessment, onN
         {!assessment && <button type="button" className="secondary" disabled={busy || hints >= Math.min(3,problem.steps.length-1)}
           onClick={() => setHints(hints+1)}>{hints ? 'Show another hint' : 'Show hint'}</button>}
       </div>}
-    </form>
+    </form>}
     {graded === null && <><p role="status">{feedback}</p>
       {hints > 0 && <ol>{problem.steps.slice(0,hints).map(line => <li key={line}><MathText text={line} /></li>)}</ol>}
     </>}
     {graded !== null && <>
-      <AnswerFeedback correct={graded} answer={problem.answer}>{feedback && <p>{feedback}</p>}</AnswerFeedback>
+      <AnswerFeedback correct={graded} submitted={response} answer={problem.answer}>
+      {feedback && <p>{feedback}</p>}
       <section className="concept-worked" aria-label="Worked solution">
+        {problem.steps.length <= 3 ? <><h4>Worked solution</h4><ol>{problem.steps.map((line,index) => <li key={index}><MathText text={line} /></li>)}</ol></> : <>
         <h4>Worked solution · Step {step+1} of {problem.steps.length}</h4>
         <p aria-live="polite"><MathText text={problem.steps[step]} /></p>
         <div className="actions">
           <button className="secondary" disabled={step===0} onClick={() => setStep(step-1)}>Previous step</button>
           <button className="secondary" disabled={step===problem.steps.length-1} onClick={() => setStep(step+1)}>Next step</button>
         </div>
+        </>}
         <p>Common mistake: <MathText text={problem.mistake} /></p>
       </section>
+      </AnswerFeedback>
       {concept === 'syllogism' && <div className="logic-groups" aria-label="Groups in the deduction">
         Badge holders<div>Members <div>Volunteers</div></div>
       </div>}
       <div className="actions">
-        {onNextConcept && <button className={graded ? 'primary' : 'secondary'} onClick={()=>{events.record('completed');onNextConcept()}}>Next concept</button>}
-        <button className={graded && onNextConcept ? 'secondary' : 'primary'} onClick={() => {
+        {onNextConcept && <button className="quiet" onClick={()=>{events.record('completed');onNextConcept()}}>Next concept</button>}
+        <button className="primary" onClick={() => {
           events.record('completed')
           if (onOriginalPractice) { onOriginalPractice(); return }
           next(advanceVariant(variant,fresh.length ? fresh : pool))
           change(''); show(''); setHints(0); setStep(0); setGraded(null)
-        }}>{graded ? 'Practice more' : 'Try a similar question'}</button>
+        }}>{graded ? 'Continue learning' : 'Try a similar question'}</button>
       </div>
     </>}
   </>

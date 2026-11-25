@@ -11,8 +11,8 @@ export default function PracticeResponse({ item, response, change, inputLabel = 
     </label>
     {math && <>
       <small>Enter your final value as a number, decimal or fraction.</small>
-      {response && <p><span className="sr-only">Math preview </span><MathText text={response} /></p>}
-      <details className="math-keypad"><summary>Math keypad</summary>
+      {/[\/⁄^√×÷]/u.test(response) && <p><span className="sr-only">Math preview </span><MathText text={response} /></p>}
+      <details className="math-keypad"><summary>Enter math symbols</summary>
         <div>{['7','8','9','/','4','5','6','×','1','2','3','−','0','.','+','(',')','^','√','Backspace','Clear'].map(key =>
           <button key={key} className="secondary" type="button" onClick={() => change(
             key === 'Clear' ? '' : key === 'Backspace' ? response.slice(0,-1) : (response + key).slice(0,48)

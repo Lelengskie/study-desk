@@ -1,4 +1,5 @@
 import React from 'react'
+import SubjectIcon from './SubjectIcon'
 
 const paths = {
   today:'M3 10.8 12 3l9 7.8V21h-6v-6H9v6H3z',
@@ -18,11 +19,23 @@ export function LearningStages({ active }) {
   </ol>
 }
 
-export function LearningHeader({ title, subject, stage, mastery }) {
-  return <header className="learning-header">
-    {subject && <span className="learning-context">{subject}</span>}
-    <h3>{title}</h3>
-    {mastery && <p className="small">{mastery}</p>}
+const subjectIcons = {
+  'Numerical Ability': 'numerical',
+  'Verbal Ability': 'verbal',
+  'Analytical Ability': 'analytical',
+  Filipino: 'filipino',
+  'General Information': 'information',
+  'Clerical Ability': 'clerical',
+}
+
+export function LearningHeader({ title, subject, stage, mastery, mastered }) {
+  return <header className={subjectIcons[subject] ? "learning-header journey-" + subjectIcons[subject] : "learning-header"}>
+    <div className="learning-header-title">
+      {subject && <span className="learning-subject-icon"><SubjectIcon subject={subjectIcons[subject]} /></span>}
+      <div>{subject && <span className="learning-context">{subject}</span>}<h3>{title}</h3></div>
+    </div>
+    {mastery && <p className="mastery-label"><strong>Concept mastery</strong><span>{mastery}</span></p>}
+    {mastered !== undefined && <progress className="mastery-meter" value={Number(mastered)} max={1} aria-label="Concept mastery" />}
     <LearningStages active={stage} />
   </header>
 }

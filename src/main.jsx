@@ -408,8 +408,8 @@ function Desk({ email, profileId, googleIdentity }) {
     const sourceSubject = subject === 'Filipino' ? 'Verbal Ability' : subject
     const mapped = extraSkills[skill]?.[2] ?? ({filipino:'filipino',clerical:'filing',grammar:'grammar','data-interpretation':'sufficiency'})[skill]
     if (!mapped) return null
-    return <LearningPractice key={track + skill} track={track} subject={sourceSubject}
-      topics={['concept:'+mapped]} exactScope hideWhenEmpty />
+    return onEmpty => <LearningPractice key={track + skill} track={track} subject={sourceSubject}
+      topics={['concept:'+mapped]} exactScope onEmpty={onEmpty} hideWhenEmpty />
   }
   function curatedNavigation(subject, skill) {
     const sequence = Object.values(curriculum[subject] ?? {}).flat().filter(key => key.startsWith('@') || mathPath[key])
@@ -510,8 +510,8 @@ function Desk({ email, profileId, googleIdentity }) {
         <ConceptTest {...conceptTest} openSkill={openCurated} />
       </> : activeSkill ? <>
         <button className="quiet back" onClick={() => {setActiveSkill(null);setEmbeddedPractice(null)}}>Back to Learn</button>
-        <CuratedSkill onProgress={refreshCurated} key={activeSkill} skill={activeSkill} subject={extraSkills[activeSkill][0]} {...curatedNavigation(extraSkills[activeSkill][0],activeSkill)} reviewer={curatedReviewer(extraSkills[activeSkill][0],activeSkill)}
-          continuePractice={() => openImported(extraSkills[activeSkill][0] === 'Filipino' ? 'Verbal Ability' : extraSkills[activeSkill][0], extraSkills[activeSkill][2])} />
+        {!embeddedPractice && <CuratedSkill onProgress={refreshCurated} key={activeSkill} skill={activeSkill} subject={extraSkills[activeSkill][0]} {...curatedNavigation(extraSkills[activeSkill][0],activeSkill)} reviewer={curatedReviewer(extraSkills[activeSkill][0],activeSkill)}
+          continuePractice={() => openImported(extraSkills[activeSkill][0] === 'Filipino' ? 'Verbal Ability' : extraSkills[activeSkill][0], extraSkills[activeSkill][2])} />}
         {['government-branches','civil-rights'].includes(activeSkill) && <p><a href="https://officialgazette.gov.ph/constitutions/1987-constitution/"
           target="_blank" rel="noreferrer">Read {activeSkill === 'civil-rights' ? 'Article III' : 'Articles VI–VIII'} in the Official Gazette</a></p>}
         {activeSkill === 'public-ethics' && <p><a href="https://officialgazette.gov.ph/1989/02/20/republic-act-no-06713/"
@@ -564,7 +564,7 @@ function Desk({ email, profileId, googleIdentity }) {
         {importedPanel}
       </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track + practiceTopic + practiceSubject} library={tab === 'library'} track={track} modules={catalog} initialTopic={practiceTopic} initialSubject={practiceSubject} conceptCounts={conceptCounts} /> : <>
         <header className="page-head"><h1>{page[0]}</h1><p>{page[1]}</p></header>
-        {tab === 'learn' && !journeySubject && <div className="actions">
+        {tab === 'learn' && !embeddedPractice && !journeySubject && <div className="actions">
           <button className="quiet" onClick={() => openImported('',null)}>Browse all practice</button>
           {due.length + conceptDue.length > 0 && <button className="quiet" onClick={() => navigate('repeat')}>Review due</button>}
         </div>}
@@ -606,10 +606,11 @@ function Desk({ email, profileId, googleIdentity }) {
           <div className="actions">{conceptDue.map(id => <button className="secondary" key={id} onClick={() => openPath(id)}>
             Review {mathPath[id].title.toLowerCase()}</button>)}</div>
         </section>}
-        {['today','learn','master'].includes(tab) && <Journey view={tab} profileId={profileId} groups={groups} modules={modules} progress={progress}
+        {['today','learn','master'].includes(tab) && !(tab === 'learn' && embeddedPractice) && <Journey view={tab} profileId={profileId} groups={groups} modules={modules} progress={progress}
           attempts={conceptRows} topicCounts={topicCounts} subjectCounts={subjectCounts} conceptCounts={conceptCounts} states={states} recommendations={recommendations} subject={journeySubject}
           curated={curated} openCurated={openCurated} startTest={startTest} startConceptTest={startConceptTest} chooseSubject={chooseJourneySubject} openLearn={() => navigate('learn')} openLesson={openLesson} openPath={openPath}
           openQuiz={() => navigate('quiz')} openPractice={openImported} />}
+        {tab === 'learn' && embeddedPractice && <button className="quiet back" onClick={() => setEmbeddedPractice(null)}>Back to Learn</button>}
         {importedPanel}
         {!modules.length && <div className="surface empty"><h2>Study content is waiting to be imported</h2><p>Ask the study desk owner to finish the private import.</p></div>}
         {['quiz', 'master'].includes(tab) && groups.map(group => <section className="topic-group" key={group}>
