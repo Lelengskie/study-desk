@@ -12,9 +12,17 @@ export function conceptState(rows, skill, now = Date.now()) {
   const independent = attempts.filter(row => row.independent)
   const success = independent.filter(row => row.correct).length
   let retained = 0
+  let bestRetained = 0
+  let everMastered = false
+  let independentSoFar = 0
+  let successfulSoFar = 0
   let due = null
   for (const row of attempts) {
     const at = Date.parse(row.attempted_at)
+    if (row.independent) {
+      independentSoFar++
+      if (row.correct) successfulSoFar++
+    }
     if (!row.independent || !row.correct) {
       retained = 0
       due = at + day
@@ -22,10 +30,12 @@ export function conceptState(rows, skill, now = Date.now()) {
       if (due !== null) retained = Math.min(retained + 1, intervals.length - 1)
       due = at + intervals[retained] * day
     }
+    bestRetained = Math.max(bestRetained, retained)
+    if (retained > 0 && independentSoFar >= 4 && successfulSoFar / independentSoFar >= .9) everMastered = true
   }
   const used = new Set(attempts.map(row => row.variant))
   return {
-    independent: independent.length, success, due, retained,
+    independent: independent.length, success, due, retained, bestRetained, everMastered,
     weak: attempts.length > 0 && attempts.slice(-2).some(row => !row.correct || !row.independent),
     mastery: independent.length >= 4 && success / independent.length >= .9 && retained >= 1,
     unused: seedOrder.filter(n => !used.has(n)),

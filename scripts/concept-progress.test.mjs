@@ -17,6 +17,12 @@ test('mastery needs different independent attempts and a delayed check', () => {
   assert.equal(conceptState(rows, 'signed', base + day).due, base + 4 * day)
   rows.push(attempt(7, 4), attempt(8, 11))
   assert.equal(conceptState(rows, 'signed', base + 11 * day).due, base + 25 * day)
+  rows.push(attempt(9, 25, false))
+  const afterMistake = conceptState(rows, 'signed', base + 25 * day)
+  assert.equal(afterMistake.mastery, false)
+  assert.equal(afterMistake.everMastered, true)
+  assert.equal(afterMistake.bestRetained, 3)
+
 })
 
 test('a hint or mistake resets retention and a weak topic recommends the prerequisite', () => {

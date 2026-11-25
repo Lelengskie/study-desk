@@ -5,6 +5,7 @@ import { client, rpc, tutor } from './api'
 import Hybrid from './Hybrid'
 import ConceptLab from './ConceptLab'
 import MathPath from './MathPath'
+import Journey from './Journey'
 import { mathPath } from './math-path.mjs'
 import { conceptState, dailyConcepts } from './concept-progress.mjs'
 import './style.css'
@@ -209,8 +210,10 @@ function QuestionFlow({ ids, mode, title, finish, refresh }) {
   </section>
 }
 
-function Desk({ email }) {
+function Desk({ email, profileId }) {
   const [practiceTopic, setPracticeTopic] = useState('')
+  const [practiceSubject, setPracticeSubject] = useState('')
+  const [journeySubject, setJourneySubject] = useState(null)
   const [topicCounts, setTopicCounts] = useState({})
   const [catalog, setCatalog] = useState(null)
   const [progress, setProgress] = useState(emptyProgress)
@@ -251,15 +254,17 @@ function Desk({ email }) {
   }, [catalog])
 
   useEffect(() => {
-    if (!catalog || pathStart) return
+    if (!catalog || pathStart || detail) return
     let active = true
     rpc('v2_concept_progress').then(rows => { if (active && Array.isArray(rows)) setConceptRows(rows) }).catch(() => {})
     return () => { active = false }
-  }, [catalog, tab, pathStart])
+  }, [catalog, tab, pathStart, detail])
 
   function navigate(stage) {
     setPathStart(null)
     setPracticeTopic('')
+    setPracticeSubject('')
+    setJourneySubject(null)
     setTab(stage)
     setDetail(null)
     setFlow(null)
@@ -309,13 +314,19 @@ function Desk({ email }) {
   const activeIds = new Set(modules.map((module) => module.id))
   const reviews = progress.reviews.filter((item) => activeIds.has(item.topic_id))
   const due = reviews.filter((item) => item.is_due)
-  const completed = modules.filter((module) => progress.completed.includes(module.id)).length
-  const mastered = modules.filter((module) => progress.mastery[module.id]?.mastered).length
   const groups = [...new Set(modules.map((module) => module.track))]
   const states = Object.fromEntries(Object.keys(mathPath).map(id => [id, conceptState(conceptRows, id)]))
   const recommendations = dailyConcepts(conceptRows, mathPath)
   const conceptDue = Object.keys(states).filter(id => states[id].dueNow && states[id].unused.length)
   const weak = Object.keys(states).filter(id => states[id].weak)
+  function openLesson(module) {
+    setDetail(module)
+    window.scrollTo(0, 0)
+  }
+  function chooseJourneySubject(subject) {
+    setJourneySubject(subject)
+    window.scrollTo(0, 0)
+  }
   function openPath(id) {
     setPathStart(id)
     window.scrollTo(0, 0)
@@ -347,7 +358,7 @@ function Desk({ email }) {
       </div>
       {error && <p role="alert" className="notice error">{error}</p>}
       {pathStart ? <>
-        <button className="quiet back" onClick={() => setPathStart(null)}>Back to {tab === 'repeat' ? 'reviews' : 'study plan'}</button>
+        <button className="quiet back" onClick={() => setPathStart(null)}>Back to {tab === 'repeat' ? 'reviews' : journeySubject || 'study plan'}</button>
         <MathPath key={pathStart} initialConcept={pathStart} />
       </> : flow ? <>
         <button className="quiet back" onClick={() => { setFlow(null); setError('') }}>End session</button>
@@ -369,17 +380,21 @@ function Desk({ email }) {
           </div>
         </article>
         <ConceptLab topic={detail.id} />
-      </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track + practiceTopic} library={tab === 'library'} track={track} modules={catalog} initialTopic={practiceTopic} /> : <>
+      </> : ['library', 'practice'].includes(tab) ? <Hybrid key={tab + track + practiceTopic + practiceSubject} library={tab === 'library'} track={track} modules={catalog} initialTopic={practiceTopic} initialSubject={practiceSubject} /> : <>
         <header className="page-head"><h1>{page[0]}</h1><p>{page[1]}</p></header>
-        {tab === 'learn' && <section className="surface concept-lab">
+        {tab === 'learn' && !journeySubject && <section className="surface concept-lab">
           <h2>Study today</h2>
-          <p>{conceptDue.length ? 'Start with a due review, then continue your learning pathway.'
+          <p>{conceptDue.length || due.length ? 'Start with a due review, then continue your learning pathway.'
             : 'Start with a short guided exercise. Use a hint whenever you need help.'}</p>
           <div className="actions">
             {recommendations.map((id, index) => <button className={index ? 'secondary' : 'primary'}
               key={id} onClick={() => openPath(id)}>{states[id].dueNow ? 'Review' : 'Study'} {mathPath[id].title.toLowerCase()}</button>)}
             <button className="secondary" onClick={() => openPath('signed')}>Browse the learning pathway</button>
+            {due.length > 0 && <button className="secondary" onClick={() => navigate('repeat')}>
+              {due.length} verified {due.length === 1 ? 'review' : 'reviews'} due
+            </button>}
           </div>
+          {weak.length > 0 && <p>Focus areas: {weak.map(id => mathPath[id].title).slice(0, 3).join(', ')}</p>}
         </section>}
         {tab === 'master' && <section className="surface concept-lab">
           <h2>Adaptive learning progress</h2>
@@ -393,31 +408,29 @@ function Desk({ email }) {
           <div className="actions">{conceptDue.map(id => <button className="secondary" key={id} onClick={() => openPath(id)}>
             Review {mathPath[id].title.toLowerCase()}</button>)}</div>
         </section>}
-        {tab === 'learn' && <div className="summary" aria-label="Study summary">
-          <div><strong>{completed}<span> / {modules.length}</span></strong><small>Lessons complete</small></div>
-          <div><strong>{mastered}</strong><small>Topics mastered</small></div>
-          <div><strong>{due.length}</strong><small>Reviews due</small></div>
-        </div>}
+        {tab === 'learn' && <Journey profileId={profileId} groups={groups} modules={modules} progress={progress}
+          attempts={conceptRows} topicCounts={topicCounts} states={states} recommendations={recommendations} subject={journeySubject}
+          chooseSubject={chooseJourneySubject} openLesson={openLesson} openPath={openPath}
+          openQuiz={() => navigate('quiz')} openPractice={subject => {
+            navigate('practice')
+            setPracticeSubject(subject)
+          }} />}
         {!modules.length && <div className="surface empty"><h2>Study content is waiting to be imported</h2><p>Ask the study desk owner to finish the private import.</p></div>}
-        {['learn', 'quiz', 'master'].includes(tab) && groups.map((group) => <section className="topic-group" key={group}>
+        {['quiz', 'master'].includes(tab) && groups.map(group => <section className="topic-group" key={group}>
           <h2>{group}</h2>
-          <div className="topic-grid">{modules.filter((module) => module.track === group).map((module) => {
+          <div className="topic-grid">{modules.filter(module => module.track === group).map(module => {
             const stat = progress.mastery[module.id]
             const accuracy = stat?.attempts ? Math.round(stat.correct / stat.attempts * 100) : null
-            const done = progress.completed.includes(module.id)
             return <article className="surface topic" key={module.id}>
               <div><h3>{module.title}</h3>
                 {tab === 'master' ? <>
                   <p>{accuracy === null ? 'No quiz attempts yet' : accuracy + '% · ' + stat.correct + ' of ' + stat.attempts + ' correct'}</p>
                   {accuracy !== null && <progress value={accuracy} max="100" aria-label={module.title + ' accuracy'} />}
                   <small>{stat?.mastered ? 'Mastered' : stat ? stat.distinct_items + ' distinct questions · ' + stat.sessions + ' sessions' : 'Try a topic quiz to start'}</small>
-                </> : tab === 'learn' ? <p>{topicCounts[module.id]?.answer_ready ?? module.quiz_ids.length} answer-ready · {module.quiz_ids.length} verified{done ? ' · Lesson complete' : ''}</p>
-                  : <p>{module.quiz_ids.length} verified questions</p>}
+                </> : <p>{module.quiz_ids.length} verified questions</p>}
               </div>
-              {tab !== 'master' && <button className="secondary" aria-label={(tab === 'learn' ? 'Open lesson: ' : 'Start quiz: ') + module.title} onClick={() => {
-                if (tab === 'learn') { setDetail(module); window.scrollTo(0, 0) }
-                else start(module.quiz_ids, 'quiz', module.title)
-              }}>{tab === 'learn' ? 'Open lesson' : 'Start quiz'}</button>}
+              {tab === 'quiz' && <button className="secondary" aria-label={'Start quiz: ' + module.title}
+                onClick={() => start(module.quiz_ids, 'quiz', module.title)}>Start quiz</button>}
             </article>
           })}</div>
         </section>)}
@@ -439,7 +452,7 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
   if (client && session === undefined) return <main className="gate"><Brand /><p role="status">Checking your session…</p></main>
-  return session?.user ? <Desk key={session.user.id} email={session.user.email} /> : <SignIn />
+  return session?.user ? <Desk key={session.user.id} email={session.user.email} profileId={session.user.id} /> : <SignIn />
 }
 
 createRoot(document.getElementById('root')).render(<App />)
