@@ -499,3 +499,6 @@ select { appearance: none; border: 1px solid #c9d2e7; padding-inline-end: 2.1rem
 .question-option-list { padding: .55rem .75rem; border: 1px solid #dce4f0; border-radius: .7rem; background: #f4f7fc; }
 .question-option-list .quiet { text-align: left; }
 .lesson-question .answer-choices:disabled { opacity: 1; }
+
+.lesson-reference > summary { color: #314c78; cursor: pointer; width: fit-content; padding: .55rem .25rem; }
+.lesson-reference[open] > summary { margin-bottom: .5rem; }

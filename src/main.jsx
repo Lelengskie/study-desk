@@ -533,6 +533,8 @@ function Desk({ email, profileId, googleIdentity }) {
         <QuestionFlow key={flow.key} {...flow} finish={() => navigate('master')} refresh={refresh} />
       </> : detail ? <>
         <button className="quiet back" onClick={() => { setDetail(null); setEmbeddedPractice(null); setError('') }}>Back to lessons</button>
+        <details className="lesson-reference" open={!(showCurated || adaptiveLesson) || undefined}>
+        <summary>Lesson overview</summary>
         <article className="surface lesson"><div className="eyebrow">{detail.track}</div><h1>{detail.title}</h1>
           <p><MathText text={detail.lesson} /></p>
           <p>{Math.max(0,(topicCounts[detail.id]?.answer_ready ?? detail.quiz_ids.length)-(topicCounts[detail.id]?.verified ?? detail.quiz_ids.length))} linked imports · {detail.quiz_ids.length} verified assessment questions</p>
@@ -552,7 +554,7 @@ function Desk({ email, profileId, googleIdentity }) {
               </button>
             </li>)}</ul>
           </details>}
-        </article>
+        </article></details>
         {showCurated && <CuratedSkill onProgress={refreshCurated} key={detail.id} skill={detail.id} subject={detail.track} {...curatedNavigation(detail.track,detail.id)} reviewer={curatedReviewer(detail.track,detail.id)}
           continuePractice={() => {setShowCurated(false); continueLesson(detail)}} />}
         {!showCurated && !assessedSkills.has(detail.id) && !adaptiveLesson && hasPrimer(detail.id) && <CurriculumPrimer key={detail.id}
