@@ -72,4 +72,46 @@ export const coreNumerical = {
         `Divide favorable outcomes by all possible outcomes to get ${n}/${n + other}. It is between zero and one.`],
       'Include both blue and white counters in the denominator.')
   }),
+  'factor-pairs': build('Factors and multiples', 'whole-divide', n => {
+    const factor = 2+n%7
+    return exercise(`The number ${factor*n} is a multiple of ${factor}. Find the other factor in this pair.`, n,
+      ['A factor divides a number exactly. A pair of factors multiplies to give that number.',
+        `Divide the product by the known factor. ${factor*n} ÷ ${factor} = ${n}.`,
+        `Check by multiplying the factors. ${factor} × ${n} = ${factor*n}.`],
+      'The product is the multiple. Each of the two numbers multiplied is a factor.')
+  }),
+  'gcf-lcm': build('Greatest common factor and least common multiple', 'factor-pairs', n => {
+    const gcf = n%2 === 0
+    return exercise(`Find the ${gcf ? 'greatest common factor' : 'least common multiple'} of ${3*n} and ${5*n}.`, gcf ? n : 15*n,
+      [`Both numbers contain a factor of ${n}. The remaining factors are 3 and 5, which share no factor greater than 1.`,
+        gcf ? `The only shared portion of the prime factors is the factor ${n}. So the greatest common factor is ${n}.`
+          : `A common multiple needs both the extra factor 3 and the extra factor 5. Multiply ${n} × 3 × 5 = ${15*n}.`,
+        gcf ? `Dividing the two original numbers by ${n} leaves 3 and 5 with no further common factor.`
+          : `${15*n} ÷ ${3*n} = 5 and ${15*n} ÷ ${5*n} = 3. Neither 3 nor 5 can be dropped while keeping both divisibilities.`],
+      'A common factor divides both inputs. A common multiple can be divided by both inputs.')
+  }),
+  'fraction-decimal': build('Fraction to decimal conversion', 'decimals', n => {
+    const denominator = n%2 === 0 ? 10 : 100
+    return exercise(`Write ${n}/${denominator} as a decimal.`, `${n}/${denominator}`,
+      [`The denominator ${denominator} says how many equal parts make one unit. The numerator counts those parts.`,
+        `Divide ${n} by ${denominator}. Moving the decimal point ${denominator===10 ? 'one place' : 'two places'} left makes the value ${n/denominator}.`,
+        `Check by multiplying the decimal by ${denominator}. The result is the original numerator, ${n}.`],
+      'Dividing by 10 or 100 makes the value smaller. Moving the decimal point right would make it larger.')
+  }),
+  'algebra-expression': build('Substitution in algebraic expressions', 'order', n => {
+    const multiply = 2+n%4
+    return exercise(`Evaluate ${multiply}x + 3 when x = ${n}.`, multiply*n+3,
+      ['A variable is a symbol for a value. A number written next to x multiplies x.',
+        `Replace x with ${n}. Calculate the product first: ${multiply} × ${n} = ${multiply*n}.`,
+        `Then add 3: ${multiply*n} + 3 = ${multiply*n+3}. Subtracting 3 recovers the product.`],
+      'The multiplier belongs to x alone. Adding first would change the expression.')
+  }),
+  'counting-pairs': build('Counting combinations of choices', 'whole-multiply', n => {
+    const options = 2+n%5
+    return exercise(`A form has ${n} possible cover designs and ${options} paper colors. Each design can use any color. How many distinct design-color pairs are possible?`, n*options,
+      ['Separate the choices into two stages. Each cover design can pair with every paper color.',
+        `Each design contributes ${options} new pairs. Multiply ${n} × ${options} = ${n*options} pairs.`,
+        `Check by reversing the count: each of the ${options} colors appears in ${n} pairs.`],
+      'Adding the choices counts individual designs and colors. The question asks for complete pairs.')
+  }),
 }

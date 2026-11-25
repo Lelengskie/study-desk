@@ -2,13 +2,13 @@ import { mathPath } from './math-path.mjs'
 
 export const curriculum = {
   'Numerical Ability': {
-    'Whole numbers': ['basic-arithmetic','signed','order','whole-multiply','whole-divide','Factors and multiples','GCF and LCM'],
+    'Whole numbers': ['basic-arithmetic','signed','order','whole-multiply','whole-divide','factor-pairs','gcf-lcm'],
     'Fractions': ['fraction-understanding','fraction-equivalent','fraction-simplify','fraction-common-denominator','fractions','fraction-subtract','fraction-multiply','fraction-divide','fraction-mixed','fraction-word','fraction-review'],
-    'Decimals, percentages and ratios': ['decimals','Decimal subtraction, multiplication and division','Fraction–decimal conversion','percent','percent-change','ratio','average'],
+    'Decimals, percentages and ratios': ['decimals','Decimal subtraction, multiplication and division','fraction-decimal','percent','percent-change','ratio','average'],
     'Financial mathematics': ['discount','commission','interest','compound-interest'],
-    'Algebra': ['Variables and expressions','linear','multi-equation','Translating word problems','Inequalities'],
+    'Algebra': ['algebra-expression','linear','multi-equation','Translating word problems','Inequalities'],
     'Applied problems': ['age','work','speed','Money problems','Ratio word problems','Number word problems','Mixtures'],
-    'Measurement and data': ['area','perimeter','volume','measurement-conversion','Tables and charts','simple-probability','Counting'],
+    'Measurement and data': ['area','perimeter','volume','measurement-conversion','Tables and charts','simple-probability','counting-pairs'],
     'Numerical reasoning': ['sequence','Mixed numerical reasoning','Timed numerical challenges'],
   },
   'Verbal Ability': {

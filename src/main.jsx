@@ -38,6 +38,7 @@ const linkedConcepts = {
   clerical: ['filing'],
   spelling: ['spelling'],
 }
+const googleSignInReady = import.meta.env.VITE_STUDY_GOOGLE_SIGN_IN === 'true'
 const labels = { professional: 'Professional', subprofessional: 'Subprofessional' }
 const emptyProgress = { completed: [], mastery: {}, reviews: [] }
 const dateLabel = (value) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
@@ -62,6 +63,16 @@ function SignIn({ blocked }) {
     } catch (problem) { setError(problem.message) }
     finally { setBusy(false) }
   }
+  async function signInWithGoogle() {
+    setBusy(true)
+    setError('')
+    try {
+      const { error } = await client.auth.signInWithOAuth({
+        provider: 'google', options: { redirectTo: new URL(import.meta.env.BASE_URL, window.location.href).href },
+      })
+      if (error) throw error
+    } catch (problem) { setError(problem.message); setBusy(false) }
+  }
   return <main className="gate">
     <Brand />
     <section className="gate-card">
@@ -78,6 +89,7 @@ function SignIn({ blocked }) {
           {error && <p role="alert" className="notice error">{error}</p>}
           <button className="primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
         </form>
+        {googleSignInReady && <button className="secondary" disabled={busy} onClick={signInWithGoogle}>Continue with Google</button>}
       </> : <p role="status">Supabase setup is required before you can sign in. See the project setup guide.</p>}
     </section>
   </main>
@@ -214,7 +226,7 @@ function QuestionFlow({ ids, mode, title, finish, refresh }) {
   </section>
 }
 
-function Desk({ email, profileId }) {
+function Desk({ email, profileId, googleIdentity }) {
   const [practiceTopic, setPracticeTopic] = useState('')
   const [practiceSubject, setPracticeSubject] = useState('')
   const [journeySubject, setJourneySubject] = useState(null)
@@ -223,7 +235,11 @@ function Desk({ email, profileId }) {
   const [conceptCounts, setConceptCounts] = useState([])
   const [catalog, setCatalog] = useState(null)
   const [progress, setProgress] = useState(emptyProgress)
-  const [track, setTrack] = useState(() => localStorage.getItem('reviewer-track') === 'subprofessional' ? 'subprofessional' : 'professional')
+  const trackKey = 'study-desk:track:' + profileId
+  const [track, setTrack] = useState(() => {
+    const saved = localStorage.getItem(trackKey) ?? (googleIdentity ? null : localStorage.getItem('reviewer-track'))
+    return saved === 'subprofessional' ? 'subprofessional' : 'professional'
+  })
   const [tab, setTab] = useState('today')
   const [curated, setCurated] = useState({})
   const [activeSkill, setActiveSkill] = useState(null)
@@ -243,7 +259,8 @@ function Desk({ email, profileId }) {
 
   useEffect(() => {
     let active = true
-    Promise.all([client.rpc('study_catalog'), rpc('study_progress')]).then(([result, stats]) => {
+    const enrollment = googleIdentity && googleSignInReady ? rpc('study_claim_google_enrollment') : Promise.resolve()
+    enrollment.then(() => Promise.all([client.rpc('study_catalog'), rpc('study_progress')])).then(([result, stats]) => {
       if (!active) return
       if (result.error) throw result.error
       setCatalog(result.data.modules)
@@ -445,7 +462,7 @@ function Desk({ email, profileId }) {
         <span className="eyebrow">CIVIL SERVICE EXAM</span>
         <label className="track">Exam track <select value={track} onChange={(event) => {
           setTrack(event.target.value)
-          localStorage.setItem('reviewer-track', event.target.value)
+          localStorage.setItem(trackKey, event.target.value)
           navigate(tab)
         }}>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </div>
@@ -579,7 +596,7 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
   if (client && session === undefined) return <main className="gate"><Brand /><p role="status">Checking your session…</p></main>
-  return session?.user ? <Desk key={session.user.id} email={session.user.email} profileId={session.user.id} /> : <SignIn />
+  return session?.user ? <Desk key={session.user.id} email={session.user.email} profileId={session.user.id} googleIdentity={session.user.app_metadata?.provider === 'google'} /> : <SignIn />
 }
 
 createRoot(document.getElementById('root')).render(<App />)

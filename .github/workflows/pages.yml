@@ -17,6 +17,8 @@ jobs:
     env:
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      VITE_STUDY_GOOGLE_SIGN_IN: ${{ vars.VITE_STUDY_GOOGLE_SIGN_IN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

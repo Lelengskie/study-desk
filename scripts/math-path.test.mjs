@@ -4,6 +4,11 @@ import { firstSeed, lastSeed, mathPath } from '../src/math-path.mjs'
 import { equivalentNumber } from '../src/practice-response.mjs'
 
 const expected = {
+  'factor-pairs': n => ((2+n%7)*n)/(2+n%7),
+  'gcf-lcm': n => n%2 ? (3*n)*(5*n)/n : n,
+  'fraction-decimal': n => n%2 ? `${n}/100` : `${n*10}/100`,
+  'algebra-expression': n => Array(2+n%4).fill(n).reduce((sum, value) => sum+value,3),
+  'counting-pairs': n => Array(n).fill(2+n%5).reduce((sum,value)=>sum+value,0),
   'whole-multiply': n => Array(n).fill(2+n%8).reduce((sum, size) => sum+size, 0),
   'whole-divide': n => (n*(2+n%9))/(2+n%9),
   'percent-change': n => 100*n + (n%2 ? 5*n : -5*n),
