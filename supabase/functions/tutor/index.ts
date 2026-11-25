@@ -2,6 +2,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.89.0'
 import { createPractice, studentPractice } from './practice.mjs'
 
+const defaultGeminiModel = "gemini-3.1-flash-lite"
+
 function integerSetting(name: string, fallback: number): number {
   const value = Deno.env.get(name)
   return value !== undefined && /^\d+$/.test(value) ? Number(value) : fallback
@@ -20,7 +22,7 @@ function response(body: object, status: number, origin: string): Response {
 }
 
 async function explain(skill: string, questionId: string, key: string, hybrid = false) {
-  const model = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash-lite'
+  const model = Deno.env.get('GEMINI_MODEL') ?? defaultGeminiModel
   if (!/^gemini-[a-z0-9.-]+$/.test(model)) return null
   const language = ['word-meaning-21', 'word-meaning-24'].includes(questionId) ? 'Filipino' : 'English'
   // Send only an original skill description. Keep student data, attempts, and reviewer excerpts in Supabase.
@@ -34,7 +36,8 @@ async function explain(skill: string, questionId: string, key: string, hybrid = 
     generationConfig: {
       maxOutputTokens: 600,
       temperature: 0.3,
-      thinkingConfig: { thinkingBudget: 0 },
+      ...(model === defaultGeminiModel ? { thinkingConfig: { thinkingLevel: 'MINIMAL' } } :
+        model.startsWith('gemini-2.5-') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
       responseMimeType: 'application/json',
       responseSchema: {
         type: 'OBJECT',
@@ -101,7 +104,7 @@ Deno.serve(async (req) => {
     const questionId = body?.question_id
     if (body?.mode === 'hybrid' && body.use_ai === true && typeof questionId === 'string' && /^[a-f0-9]{64}$/.test(questionId)) {
       const key = Deno.env.get('GEMINI_API_KEY')
-      const model = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash-lite'
+      const model = Deno.env.get('GEMINI_MODEL') ?? defaultGeminiModel
       if (!key || !/^gemini-[a-z0-9.-]+$/.test(model)) return response({ status: 'not_configured' }, 200, origin)
       const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
       const modelKey = model + ':hybrid-v1'
