@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { client, rpc, tutor } from './api'
 import Hybrid from './Hybrid'
+import CuratedSkill from './CuratedSkill'
 import LearningPractice from './LearningPractice'
 import CurriculumPrimer, { hasPrimer } from './CurriculumPrimer'
 import { conceptLabel } from './concept-labels.mjs'
@@ -20,6 +21,7 @@ const stages = [
   { id: 'master', title: 'Progress', icon: '◉' },
   { id: 'library', title: 'Library', icon: '▥' }
 ]
+const assessedSkills = new Set(['grammar','data-interpretation','constitution','clerical','filipino'])
 const linkedConcepts = {
   'word-meaning': ['synonyms','antonyms','context','filipino'],
   grammar: ['grammar','sentence-completion'],
@@ -235,6 +237,7 @@ function Desk({ email, profileId }) {
   const [progress, setProgress] = useState(emptyProgress)
   const [track, setTrack] = useState(() => localStorage.getItem('reviewer-track') === 'subprofessional' ? 'subprofessional' : 'professional')
   const [tab, setTab] = useState('today')
+  const [showCurated, setShowCurated] = useState(false)
   const [adaptiveLesson, setAdaptiveLesson] = useState(false)
   const [embeddedPractice, setEmbeddedPractice] = useState(null)
   const [pathStart, setPathStart] = useState(null)
@@ -279,6 +282,7 @@ function Desk({ email, profileId }) {
   }, [catalog, tab, pathStart, detail])
 
   function navigate(stage) {
+    setShowCurated(false)
     setEmbeddedPractice(null)
     setPathStart(null)
     setPracticeTopic('')
@@ -352,10 +356,12 @@ function Desk({ email, profileId }) {
     return { subject, imported }
   }
   function openImported(subject, concept) {
+    setShowCurated(concept === 'filipino')
     setAdaptiveLesson(false)
     setEmbeddedPractice({ subject, topic: concept ? 'concept:' + concept : '' })
   }
   function openLesson(module) {
+    setShowCurated(assessedSkills.has(module.id))
     setEmbeddedPractice(null)
     setAdaptiveLesson(false)
     setDetail(module)
@@ -393,7 +399,7 @@ function Desk({ email, profileId }) {
         conceptCounts={conceptCounts} />
     : embeddedPractice.topic === 'concept:filipino'
       ? <div key={track + 'filipino'}>
-          {!adaptiveLesson && <CurriculumPrimer concept="filipino" onReady={() => setAdaptiveLesson(true)} />}
+          {showCurated && <CuratedSkill key="filipino" skill="filipino" continuePractice={() => {setShowCurated(false); setAdaptiveLesson(true)}} />}
           {adaptiveLesson && <LearningPractice track={track} subject="Verbal Ability"
             topics={['concept:filipino']} onFinish={() => setAdaptiveLesson(false)} />}
         </div>
@@ -440,7 +446,7 @@ function Desk({ email, profileId }) {
               {progress.completed.includes(detail.id) ? 'Lesson complete' : busy ? 'Saving…' : 'Mark lesson complete'}
             </button>
 
-            {!hasPrimer(detail.id) && !adaptiveLesson &&
+            {!showCurated && !hasPrimer(detail.id) && !adaptiveLesson &&
               <button className="primary" onClick={() => continueLesson(detail)}>Continue learning</button>}
           </div>
           {lessonConcepts.length > 0 && <details className="concept-worked">
@@ -452,7 +458,9 @@ function Desk({ email, profileId }) {
             </li>)}</ul>
           </details>}
         </article>
-        {!adaptiveLesson && hasPrimer(detail.id) && <CurriculumPrimer key={detail.id}
+        {showCurated && <CuratedSkill key={detail.id} skill={detail.id}
+          continuePractice={() => {setShowCurated(false); continueLesson(detail)}} />}
+        {!showCurated && !assessedSkills.has(detail.id) && !adaptiveLesson && hasPrimer(detail.id) && <CurriculumPrimer key={detail.id}
           concept={detail.id} onReady={() => continueLesson(detail)} />}
         {adaptiveLesson && <LearningPractice key={track+detail.id} track={track} subject={detail.track}
           topics={[detail.id,...lessonConcepts.map(row=>'concept:'+row.concept)]}

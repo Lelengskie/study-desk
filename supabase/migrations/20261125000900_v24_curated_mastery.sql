@@ -1,0 +1,54 @@
+create table reviewer_private.curated_skills (id text primary key, kit jsonb not null);
+insert into reviewer_private.curated_skills
+select v->>'id',v from jsonb_array_elements($kits$[{"id":"grammar","title":"Subject–verb agreement","subject":"Verbal Ability","lesson":"Identify the subject of each clause. Match the verb to that subject. Ignore nouns inside phrases that merely describe the subject.","example":"In “A set of keys is missing,” set is the subject. “Of keys” tells you what belongs to the set, so use is.","rows":[["Choose the singular subject.","The clerk","The clerks",0,"One clerk is singular."],["Complete: The folders ___ ready.","is","are",1,"Folders is plural."],["Complete: The box of forms ___ heavy.","is","are",0,"Box is the subject. Forms only tells you what is in it."],["Complete: Each of the applicants ___ a receipt.","receive","receives",1,"Each is singular and controls the verb."],["Complete: The clerk who checks the forms ___ the supervisor.","notifies","notify",0,"The subject of the main clause is clerk. Forms belongs to the relative clause."],["Which sentence has correct agreement?","The list of changes are attached.","The list of changes is attached.",1,"The subject is one list. Changes does not control is."]]},{"id":"data-interpretation","title":"Conditions and sufficient evidence","subject":"Analytical Ability","lesson":"A statement is sufficient if it forces one answer. Test a second possible case before combining facts.","example":"“There are at most five folders” allows zero, one, or several folders. The exact number remains unknown.","rows":[["A box contains 8 forms. Is its number of forms known?","Yes","No",0,"The statement gives the exact number."],["The box has at least 8 forms. Is its exact count known?","Yes","No",1,"Both 8 and 9 fit the statement."],["A and B total 12. B is 4. Which facts are needed to determine A?","Both facts together","The total alone",0,"Without B, many pairs total 12. Together the facts give A = 8."],["Exactly one of A and B passed. Is “B did not pass” enough to determine whether A passed?","No","Yes",1,"With exactly one pass, ruling out B forces A to pass."],["Which is sufficient to determine x? I: x is positive and x² = 25. II: x is an integer.","I alone","Both are necessary",0,"The positive square root is uniquely 5. The integer condition adds nothing."],["Can x be determined from x + y = 9 and y > 0?","Yes","No",1,"For example (x,y) can be (8,1) or (7,2). Both satisfy the conditions."]]},{"id":"filipino","title":"Pahiwatig sa konteksto","subject":"Verbal Ability","lesson":"Gamitin ang mga salita sa paligid ng salita o pahayag upang matukoy ang kahulugan nito.","example":"“Maalinsangan kaya binuksan nila ang bintana.” Ang pagbukas ng bintana ay pahiwatig na mainit at kulob ang silid.","rows":[["Ano ang kasalungat ng mabagal?","Mabilis","Mahina",0,"Ang mabilis ay tumutukoy sa mas maikling oras ng pagkilos."],["“Payapa ang silid; walang nagsasalita.” Ano ang pahiwatig ng payapa?","Maingay","Tahimik",1,"Ang kawalan ng nagsasalita ay palatandaan ng katahimikan."],["“Bagaman maikli ang ulat, malinaw ang paliwanag.” Ano ang ipinakikita ng bagaman?","Pagsalungat ng inaasahan","Pagkakasunod ng oras",0,"Maikli ang ulat, pero naipaliwanag pa rin nang malinaw ang paksa."],["“Pinagtibay ng lupon ang panukala matapos ang botohan.” Ano ang pinakamalapit na kahulugan ng pinagtibay?","Itinanggi","Inaprubahan",1,"Ang botohan at pasya ng lupon ay tumutukoy sa pag-apruba ng panukala."],["“Hindi sagabal ang ulan. Sa halip, nakatulong ito sa bagong tanim.” Ano ang papel ng ‘sa halip’?","Ipinapalit ang benepisyo sa inaasahang sagabal.","Inilalahad ang oras ng pagtatanim.",0,"Binabago ng ikalawang pangungusap ang inaasahang negatibong epekto."],["“Kapos ang papel kaya gumamit sila ng magkabilang panig.” Ano ang pinatutunayan ng ginawa nila?","Sobra ang papel.","Kaunti ang papel.",1,"Ang pagtitipid sa papel ay pahiwatig ng kakulangan."]]},{"id":"constitution","title":"Constitutional conditions and safeguards","subject":"General Information","lesson":"Identify the triggering event, the decision-maker, and the safeguard. Each part can impose a separate requirement.","example":"Article III, Section 15 combines two tests. Check invasion or rebellion, then separately ask whether public safety requires the measure.","rows":[["Which document contains the Bill of Rights in Article III?","1987 Philippine Constitution","A local ordinance",0,"Article III of the 1987 Constitution is the Bill of Rights."],["Article III, Section 15 refers to which events?","An ordinary election","Invasion or rebellion",1,"The section names invasion or rebellion."],["Under Article III, Section 15, is rebellion alone sufficient to suspend the privilege of the writ?","No, public safety must also require it.","Yes, automatically.",0,"The public-safety requirement must also be met."],["Article III, Section 13 protects the right to bail even when which privilege is suspended?","The privilege of holding public office","The privilege of the writ of habeas corpus",1,"Section 13 contains this express guarantee."],["A declaration of martial law has been made. Under Article VII, Section 18, does that declaration automatically suspend the privilege of the writ?","No, the declaration does not automatically suspend it.","Yes, by the declaration alone.",0,"Article VII, Section 18 expressly distinguishes the two measures."],["Under Article III, Section 15, invasion exists but public safety does not require suspension. Are the stated conditions met?","Yes","No",1,"Invasion satisfies one condition only. Public safety is a separate requirement."]]},{"id":"clerical","title":"Alphabetical filing and tie-breaks","subject":"Clerical Ability","lesson":"Compare the first filing key letter by letter. Apply a second key only when the first key ties. Use the filing rule stated in the question.","example":"If the rule is surname then given name, place Santos, Ada before Santos, Ben. The surname ties, so the given name resolves the order.","rows":[["Which filing key comes first alphabetically?","Abad","Bautista",0,"A precedes B."],["Which filing key comes first?","Cruz","Cuevas",0,"After C, r precedes u."],["File by surname, then given name. Which comes first?","Reyes, Maria","Reyes, Ana",1,"The surnames tie. Compare the given names, where A precedes M."],["File identical names by ascending record number. Which comes first?","Tan, Lina — 9","Tan, Lina — 12",0,"The names tie. As numbers, 9 comes before 12."],["File by surname, then given name, then ascending record number. Which comes first?","Ramos, Bea — 2","Ramos, Ana — 12",1,"The names differ at the second key. Ana comes first before record number is considered."],["File by surname, then given name. Where should Dizon, Ana go relative to Dizon, Ben and Dominguez, Ana?","Before both","Between the other two",0,"Ana precedes Ben where the surname ties, and Dizon comes before Dominguez."]]}]$kits$::jsonb) v;
+create table reviewer_private.curated_progress (
+ learner uuid references auth.users(id), skill text references reviewer_private.curated_skills(id),
+ stage smallint not null default 0 check(stage between 0 and 6),
+ first_attempts jsonb not null default '{}', due_at timestamptz, mastered boolean not null default false,
+ primary key(learner,skill)
+);
+alter table reviewer_private.curated_skills enable row level security;
+alter table reviewer_private.curated_progress enable row level security;
+revoke all on reviewer_private.curated_skills,reviewer_private.curated_progress from public,anon,authenticated;
+create function public.curated_next(skill_id text)
+returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare member_id uuid := reviewer_private.assert_member(); material jsonb; stage_no integer;
+ p reviewer_private.curated_progress; item jsonb;
+begin
+ select kit into material from reviewer_private.curated_skills where id=skill_id;
+ if not found then raise exception 'Unknown skill' using errcode='22023'; end if;
+ select * into p from reviewer_private.curated_progress where learner=member_id and skill=skill_id;
+ stage_no:=coalesce(p.stage,0);
+ item:=case when stage_no=5 and p.due_at>now() then null else material->'rows'->stage_no end;
+ return jsonb_build_object('stage',stage_no,'due',p.due_at,'mastered',coalesce(p.mastered,false),
+   'title',material->>'title','lesson',material->>'lesson','example',material->>'example','prompt',item->>0,
+   'options',case when item is null then null else jsonb_build_array(item->>1,item->>2) end);
+end $$;
+create function public.curated_submit(skill_id text, expected_stage integer, chosen integer, used_example boolean default false)
+returns jsonb language plpgsql volatile security definer set search_path='' as $$
+declare member_id uuid := reviewer_private.assert_member(); p reviewer_private.curated_progress;
+ item jsonb; correct boolean; first_try boolean;
+begin
+ if chosen is null or chosen not between 0 and 1 or expected_stage is null or expected_stage not between 0 and 5 then
+   raise exception 'Invalid assessment response' using errcode='22023'; end if;
+ insert into reviewer_private.curated_progress(learner,skill) values(member_id,skill_id) on conflict do nothing;
+ select * into p from reviewer_private.curated_progress where learner=member_id and skill=skill_id for update;
+ if p.stage<>expected_stage or (p.stage=5 and p.due_at>now()) then
+   raise exception 'The next question has changed or is not due' using errcode='22023'; end if;
+ select kit->'rows'->expected_stage into item from reviewer_private.curated_skills where id=skill_id;
+ correct:=(item->>3)::int=chosen;
+ first_try:=not (p.first_attempts ? expected_stage::text);
+ update reviewer_private.curated_progress c set
+   first_attempts=case when first_try then c.first_attempts||jsonb_build_object(expected_stage::text,correct and not coalesce(used_example,true))
+     else c.first_attempts end,
+   stage=case when correct then expected_stage+1
+     when expected_stage=5 then 5 else greatest(0,expected_stage-1) end,
+   due_at=case when expected_stage=4 and correct or expected_stage=5 and not correct
+      then now()+interval '1 day' else null end,
+   mastered=expected_stage=5 and correct and first_try and not coalesce(used_example,true) and (c.first_attempts->>'4')::boolean is true
+     and (select count(*) from jsonb_each(c.first_attempts) e where e.value='true'::jsonb)>=4
+ where learner=member_id and skill=skill_id;
+ return jsonb_build_object('correct',correct,'feedback',item->>4);
+end $$;
+revoke all on function public.curated_next(text),public.curated_submit(text,integer,integer,boolean) from public,anon,authenticated;
+grant execute on function public.curated_next(text),public.curated_submit(text,integer,integer,boolean) to authenticated;

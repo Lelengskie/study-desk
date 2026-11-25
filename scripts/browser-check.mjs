@@ -45,6 +45,7 @@ try {
   const selfCheck = { ...typed, id: 'c'.repeat(64), stem: 'Reword the sentence in your own words.' }
   const conceptAttempts = []
   let weeklyGoal = null
+  let curatedStage = 0
   await page.route(fakeUrl + '/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     const method = route.request().method()
@@ -59,11 +60,21 @@ try {
     })
     if (path === '/auth/v1/logout') return route.fulfill({ status: 204, headers })
     assert.ok(route.request().headers().authorization?.includes(token), 'Protected request used a session token')
-    if (path.endsWith('/study_catalog')) return send({ modules: [testModule, { ...testModule, id: 'logic', track: 'Analytical Ability', title: 'Check a conclusion' }, { ...testModule, id: 'word-problems', title: 'Speed and distance' }] })
+    if (path.endsWith('/study_catalog')) return send({ modules: [testModule, { ...testModule, id:'grammar', track:'Verbal Ability', title:'Grammar and correct usage' }, { ...testModule, id: 'logic', track: 'Analytical Ability', title: 'Check a conclusion' }, { ...testModule, id: 'word-problems', title: 'Speed and distance' }] })
     if (path.endsWith('/hybrid_library')) return send([{
       id: 'fixture', title: 'Sample mock examination', format: 'pdf', role: 'mock exam',
       editions: ['2027'], drive_file_id: 'fixture-only'
     }])
+    if (path.endsWith('/curated_next')) return send({
+      stage:curatedStage,title:'Subject–verb agreement',lesson:'Find the subject of each clause.',
+      example:'A list of records is ready.',prompt:curatedStage ? 'Complete: The folders ___ ready.' : 'Choose the singular subject.',
+      options:curatedStage ? ['is','are'] : ['The clerk','The clerks']
+    })
+    if (path.endsWith('/curated_submit')) {
+      assert.deepEqual(route.request().postDataJSON(),{skill_id:'grammar',expected_stage:0,chosen:0,used_example:false})
+      curatedStage++
+      return send({correct:true,feedback:'One clerk is singular.'})
+    }
     if (path.endsWith('/learning_next')) {
       const {completed_id} = route.request().postDataJSON() ?? {}
       return send(completed_id === unscored.id ? typed : completed_id === typed.id ? selfCheck
@@ -159,6 +170,13 @@ try {
   assert.equal(await page.getByRole('heading',{name:'Explore fraction skills',exact:true}).count(),0)
   await page.getByRole('button', { name: 'Back to Learn' }).click()
   await page.getByRole('heading', { name: 'Explore subjects' }).waitFor()
+  await page.getByRole('button',{name:'Open Verbal Ability roadmap'}).click()
+  await page.getByRole('button',{name:'Open lesson: Grammar and correct usage'}).click()
+  await page.getByRole('button',{name:'The clerk',exact:true}).click()
+  await page.getByRole('button',{name:'Continue learning',exact:true}).click()
+  await page.getByText('Beginner',{exact:true}).waitFor()
+  await page.getByRole('button',{name:'Learn',exact:true}).click()
+
   await page.getByText('35 imported · 12 verified').waitFor()
   await page.getByRole('button', { name: 'Home', exact: true }).click()
   await page.getByLabel('Weekly goal').selectOption('5')
