@@ -1,4 +1,4 @@
-import { manualFractionExplanation } from './manual-fractions.mjs'
+import { reviewerExplanation } from './reviewer-explanations.mjs'
 import { AnswerChoices, AnswerFeedback } from './AnswerFeedback'
 import React, { useEffect, useRef, useState } from 'react'
 import { client, rpc } from './api'
@@ -196,12 +196,9 @@ export function PracticeCard({ item, updateSaved, onResult }) {
   const gradedCorrect = answer && (typed ? answer.exact_value == null ? null : equivalentNumber(submitted,answer.exact_value)
     : answer.answer == null ? null : submitted === answer.answer)
   const answerLabel = options.find(option => (option.id ?? option.label) === answer?.answer)?.text ?? modelAnswer
-  const manual = answer && manualFractionExplanation(item.stem,answer.exact_value ?? answerLabel)
-  const grammar = answer && /^sheep[.!]?$/i.test(String(answerLabel).trim())
-    && /\bplural\b/i.test(item.stem) && /\bsheep\b/i.test(item.stem)
-    ? 'Sheep has the same singular and plural form: one sheep, five sheep. Do not add -s or -es. Deer and species follow the same pattern: one deer, five deer; one species, five species.'
-    : null
-  const explanation = manual?.explanation ?? grammar ?? answer?.explanation
+  const manual = answer && reviewerExplanation(item.stem,answer.exact_value ?? answerLabel)
+  const explanation = answer?.explanation_origin === 'deterministically_checked' ? answer.explanation
+    : manual?.explanation ?? answer?.explanation
   return <article className="hybrid-practice-card">
     <h2 className="lesson-question-title">{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem}</h2>
     <details className="question-options"><summary>Question options</summary>
@@ -258,7 +255,7 @@ export function PracticeCard({ item, updateSaved, onResult }) {
     {answer && <AnswerFeedback correct={gradedCorrect} answer={modelAnswer ? answerLabel : null}
       submitted={options.find(option => (option.id ?? option.label) === submitted)?.text ?? submitted}
       explanation={explanation}>
-      {manual && <ExamTip><MathText text={manual.shortcut} /></ExamTip>}
+      {manual?.shortcut && <ExamTip><MathText text={manual.shortcut} /></ExamTip>}
       {modelAnswer && !explanation && <p>A worked explanation is currently unavailable for this question.</p>}
       {!modelAnswer && <p>{statuses[answer.status]}</p>}
     </AnswerFeedback>}
