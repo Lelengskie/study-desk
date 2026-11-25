@@ -1,3 +1,4 @@
+import { LearningStages } from './LearningPresentation'
 import { AnswerChoices, AnswerFeedback } from './AnswerFeedback'
 import MathText from './MathText'
 import React, { useEffect, useState } from 'react'
@@ -34,6 +35,7 @@ export default function CuratedSkill({ skill, subject, continuePractice, onProgr
     {busy && <p role="status">Loading activity…</p>}
     {error && <><p role="alert">{error}</p><button onClick={load}>Reload activity</button></>}
     {item && !error && <>
+      <LearningStages active={item.stage===5 ? 'Master' : item.stage>=3 ? 'Test' : item.stage>0 ? 'Apply' : 'Learn'} />
       <p><MathText text={item.lesson} /></p>
       <details key={round} className="concept-worked" onToggle={event => {if(event.currentTarget.open) setAssisted(true)}}><summary>Worked example</summary><p><MathText text={item.example} /></p></details>
       <nav className="actions" aria-label="Lesson navigation">

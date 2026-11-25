@@ -6,6 +6,8 @@ function token(text, key) {
   const nested = /^\(\s*([+−-]?\d+)\s*\/\s*(\d+)\s*\)\s*\/\s*\(\s*([+−-]?\d+)\s*\/\s*(\d+)\s*\)$/u.exec(text)
   const frac = (top, bottom) => <mfrac><mn>{top}</mn><mn>{bottom}</mn></mfrac>
   if (nested) return <mfrac key={key}>{frac(nested[1], nested[2])}{frac(nested[3], nested[4])}</mfrac>
+  const grouped = /^\(\s*([+-]?\d+)\s*([+−-])\s*([+-]?\d+)\s*\)\s*\/\s*(\d+)$/u.exec(text)
+  if (grouped) return <mfrac key={key}><mrow><mn>{grouped[1]}</mn><mo>{grouped[2]}</mo><mn>{grouped[3]}</mn></mrow><mn>{grouped[4]}</mn></mfrac>
   const mixed = /^([+−-]?\d+)(?:\s+(\d+))?\s*\/\s*(\d+)$/u.exec(text)
   if (mixed) return <mrow key={key}>{mixed[2] ? <><mn>{mixed[1]}</mn><mspace width=".2em" />{frac(mixed[2], mixed[3])}</> : frac(mixed[1], mixed[3])}</mrow>
   const power = /^(\d+(?:\.\d+)?|[xyzabXYZAB])\^([+−-]?\d+)$/u.exec(text)
@@ -19,6 +21,6 @@ function token(text, key) {
 
 export default function MathText({ text }) {
   return <>{mathSegments(text).map((part, index) => part.math
-    ? <span className="math-inline" key={index}><math aria-label={part.text}>{part.text.split(mathTokens).filter(Boolean).map(token)}</math></span>
+    ? <span className={part.text.length>44 ? "math-inline math-wide" : "math-inline"} key={index}><math aria-label={part.text}>{part.text.split(mathTokens).filter(Boolean).map(token)}</math></span>
     : <React.Fragment key={index}>{part.text}</React.Fragment>)}</>
 }

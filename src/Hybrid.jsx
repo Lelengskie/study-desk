@@ -1,3 +1,4 @@
+import { manualFractionExplanation } from './manual-fractions.mjs'
 import { AnswerChoices, AnswerFeedback } from './AnswerFeedback'
 import React, { useEffect, useState } from 'react'
 import { client, rpc } from './api'
@@ -192,6 +193,7 @@ export function PracticeCard({ item, updateSaved, onResult }) {
   const gradedCorrect = answer && (typed ? answer.exact_value == null ? null : equivalentNumber(submitted,answer.exact_value)
     : answer.answer == null ? null : submitted === answer.answer)
   const answerLabel = options.find(option => (option.id ?? option.label) === answer?.answer)?.text ?? modelAnswer
+  const manual = answer && manualFractionExplanation(item.stem,answer.exact_value ?? answerLabel)
   return <article className="hybrid-practice-card">
     <h2>{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem}</h2><p>{item.answer_reliability === 'independently_verified' ? 'Independently validated answer · Unscored practice' : statuses[item.status]}</p>
     {typed ? (context ? <PracticeResponse item={context} math={item.subject === 'Numerical Ability'} response={choice} change={setChoice} /> :
@@ -238,8 +240,9 @@ export function PracticeCard({ item, updateSaved, onResult }) {
       })}>Request AI explanation</button>
       </section>}
 
-    {answer && <AnswerFeedback correct={gradedCorrect} explanation={answer.explanation}>
-      {answer.explanation_origin === 'deterministically_checked' && <p className="small muted">Deterministically checked worked explanation</p>}
+    {answer && <AnswerFeedback correct={gradedCorrect} explanation={manual?.explanation ?? answer.explanation}>
+      {manual && <p><strong>Exam shortcut</strong> <MathText text={manual.shortcut} /></p>}
+      {!manual && answer.explanation_origin === 'deterministically_checked' && <p className="small muted">Deterministically checked worked explanation</p>}
       {modelAnswer && <><p>{gradedCorrect === true ? 'Correct' : gradedCorrect === false ? 'Incorrect' : 'Self-check'} · Your answer: {
         options.find(option => (option.id ?? option.label) === submitted)?.text ?? submitted}</p>
         <p>Answer: {present(answerLabel)}</p></>}

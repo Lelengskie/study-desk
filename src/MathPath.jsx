@@ -1,3 +1,4 @@
+import { LearningHeader } from './LearningPresentation'
 import { useQuestionEvents } from './question-events'
 import AdultPractice from './AdultPractice'
 import { adultExercises } from './adult-exercises.mjs'
@@ -86,7 +87,7 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
   }
   return <section className="surface concept-lab">
     <h2>Math foundations</h2>
-    <label>Concept <select value={concept} onChange={event => choose(event.target.value)}>
+    <label className="study-picker">Concept <select value={concept} onChange={event => choose(event.target.value)}>
       {Object.entries(mathPath).map(([id, lesson]) => <option key={id} value={id}>{lesson.title}</option>)}
     </select></label>
     {prerequisite && <button className="quiet" onClick={() => choose(entry.prerequisite)}>
@@ -105,7 +106,9 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
       </div>}
       {state.unused.length === 0 && <p>All tracked variations have been tried. You can revisit them for practice.</p>}
     </>}
-    <h3>{entry.title}</h3>
+    <LearningHeader title={entry.title} subject={coverage?.subject}
+      stage={assessment ? 'Test' : applying ? 'Apply' : state.dueNow && fresh.length ? 'Master' : 'Learn'}
+      mastery={state.mastery ? 'Mastered' : undefined} />
     <nav className="actions" aria-label="Lesson navigation">
       {previousConcept && <button className="secondary" onClick={() => choose(previousConcept)}>Previous concept</button>}
       {nextConcept && <button className="secondary" onClick={() => choose(nextConcept)}>Skip concept</button>}
@@ -113,7 +116,7 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
         {assessment ? 'Return to lesson' : 'Test my knowledge'}</button>}
     </nav>
     {foundation && <p>{pool.length} exercises in this optional collection</p>}
-    {coverage && <p>{coverage.imported} imported questions linked to this concept</p>}
+    {coverage?.imported > 0 && <details className="study-resource-note"><summary>Reviewer resources</summary><p>{coverage.imported} questions linked to this concept</p></details>}
     {!assessment && hasLegacy && <>
     <FoundationGuide key={'guide-' + concept} concept={concept} />
     <details key={'example-' + concept} className="concept-worked">

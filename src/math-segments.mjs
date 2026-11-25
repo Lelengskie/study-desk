@@ -1,6 +1,7 @@
 const fraction = String.raw`[+−-]?\d+\s*\/\s*\d+`
 const nested = String.raw`\(\s*${fraction}\s*\)\s*\/\s*\(\s*${fraction}\s*\)`
-const standalonePart = String.raw`(?:${nested}|[+−-]?\d+\s+\d+\/\d+|${fraction}|(?:\d+(?:\.\d+)?|[xyzabXYZAB])\^[+−-]?\d+|√\s*\d+)`
+const groupedNumerator = String.raw`\(\s*[+-]?\d+\s*[+−-]\s*[+-]?\d+\s*\)\s*\/\s*\d+`
+const standalonePart = String.raw`(?:${nested}|${groupedNumerator}|[+−-]?\d+\s+\d+\/\d+|${fraction}|(?:\d+(?:\.\d+)?|[xyzabXYZAB])\^[+−-]?\d+|√\s*\d+)`
 const ambiguous = String.raw`(?:https?:\/\/\S+|www\.\S+|[\p{L}\d_-]+(?:\/[\p{L}\d_-]+){2,}|\b\d{4}\/\d{1,2}\b|\b\d{1,2}\/\d{4}\b)`
 const fragments = new RegExp(`(${nested})|(${ambiguous})|(?<![\\p{L}\\d/])(${standalonePart})(?![\\p{L}\\d/])`, 'gu')
 const calculation = /^(?:[\d\sxyzabXYZAB+−*/÷×=^√().%<>≤≥-]+)$/u

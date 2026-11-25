@@ -1,3 +1,4 @@
+import { StageIcon } from './LearningPresentation'
 import { activeLegacySeeds } from './template-quality.mjs'
 import { AnswerChoices, AnswerFeedback } from './AnswerFeedback'
 import MathText from './MathText'
@@ -490,7 +491,7 @@ function Desk({ email, profileId, googleIdentity }) {
       <Brand />
       <nav aria-label="Study stages">{stages.map(({ id, title, icon }) =>
         <button key={id} aria-current={(tab === id || id === 'learn' && ['quiz','practice','repeat'].includes(tab)) ? 'page' : undefined} onClick={() => navigate(id)}>
-          <span aria-hidden="true">{icon}</span>{title}{id === 'repeat' && due.length > 0 && <b className="nav-count">{due.length}</b>}
+          <span aria-hidden="true"><StageIcon name={id} /></span>{title}{id === 'repeat' && due.length > 0 && <b className="nav-count">{due.length}</b>}
         </button>)}</nav>
       <div className="account"><p title={email}>{email}</p><button className="quiet" onClick={() => client.auth.signOut()}>Sign out</button></div>
     </aside>
@@ -568,21 +569,30 @@ function Desk({ email, profileId, googleIdentity }) {
           {due.length + conceptDue.length > 0 && <button className="quiet" onClick={() => navigate('repeat')}>Review due</button>}
         </div>}
         {tab === 'tutor' && <button className="primary" onClick={() => openImported('',null)}>Choose an imported question</button>}
-        {tab === 'today' && <section className="surface concept-lab">
-          <h2>Study today</h2>
-          <p>{conceptDue.length || due.length || dueSkills.length ? 'Start with a due review, then continue your learning pathway.'
-            : 'Start with a short guided exercise. Use a hint whenever you need help.'}</p>
-          <div className="actions">
-            {recommendations.map((id, index) => <button className={index ? 'secondary' : 'primary'}
-              key={id} onClick={() => openPath(id)}>{index === 0 ? 'Continue learning: ' : states[id].dueNow ? 'Review ' : 'Study '}{mathPath[id].title.toLowerCase()}</button>)}
-            <button className="secondary" onClick={() => openPath('signed')}>Browse the learning pathway</button>
-            {dueSkills.map(id => <button className="secondary" key={id} onClick={() => openCurated(id)}>
-              Review {curatedTitles[id]}</button>)}
-            {due.length > 0 && <button className="secondary" onClick={() => navigate('repeat')}>
-              {due.length} verified {due.length === 1 ? 'review' : 'reviews'} due
-            </button>}
+        {tab === 'today' && <section className="study-home">
+          <div className="study-hero surface">
+            <div className="study-hero-copy">
+              <span className="study-hero-icon"><StageIcon name="learn" /></span>
+              <h2>Study today</h2>
+              <p>{recommendations[0] ? mathPath[recommendations[0]].title : 'Pick a concept to begin'}</p>
+              {recommendations[0] && <small>{conceptCoverage(recommendations[0]).subject}</small>}
+              {recommendations[0] && <button className="primary" onClick={() => openPath(recommendations[0])}>
+                Continue learning: {mathPath[recommendations[0]].title.toLowerCase()}</button>}
+            </div>
+            <div className="study-hero-plan">
+              <h3>Next up</h3>
+              <ul>
+                {recommendations.slice(1).map(id => <li key={id}><button className="quiet" onClick={() => openPath(id)}>
+                  {states[id].dueNow ? 'Review ' : 'Study '}{mathPath[id].title.toLowerCase()}</button></li>)}
+                {dueSkills.map(id => <li key={id}><button className="quiet" onClick={() => openCurated(id)}>
+                  Review {curatedTitles[id]}</button></li>)}
+                {due.length > 0 && <li><button className="quiet" onClick={() => navigate('repeat')}>
+                  {due.length} verified {due.length === 1 ? 'review' : 'reviews'} due</button></li>}
+              </ul>
+              <button className="secondary" onClick={() => openPath('signed')}>Browse the learning pathway</button>
+            </div>
           </div>
-          {weak.length > 0 && <p>Focus areas: {weak.map(id => mathPath[id].title).slice(0, 3).join(', ')}</p>}
+          {weak.length > 0 && <p className="small muted">Focus areas: {weak.map(id => mathPath[id].title).slice(0, 3).join(', ')}</p>}
         </section>}
         {tab === 'master' && <section className="surface concept-lab">
           <h2>Adaptive learning progress</h2>

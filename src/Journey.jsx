@@ -106,6 +106,7 @@ export default function Journey({
     const nextLesson = lessons.find(module => !progress.completed.includes(module.id)) ?? lessons[0]
     const entries = requiredTopics(name).flatMap(([, items]) => items)
     return { lessons, concepts, nextConcept, nextLesson, entries,
+      available: entries.filter(item=>item.kind!=='pending').length,
       mastered: entries.filter(item => item.mastered).length }
 
   }
@@ -220,7 +221,7 @@ export default function Journey({
           {coverage?.subject_only > 0 && <small>{coverage.subject_only} available in subject practice while topic mapping is reviewed</small>}
           {coverage?.imported > 0 && <button className="quiet" onClick={() => openPractice(name)}>Practice {name.toLowerCase()}</button>}</details>}
           <SubjectProgress label={name + " curriculum mastery"} count={data.mastered} total={data.entries.length} />
-          <p className="small muted">{data.entries.length - data.mastered} concepts remaining</p>
+          <p className="small muted">{data.available} of {data.entries.length} concepts available</p>
           {(data.nextConcept || data.nextLesson) && <p className="journey-next">Next: {data.nextConcept ? mathPath[data.nextConcept].title : data.nextLesson.title}</p>}
           <div className="actions">
             <button className="primary" aria-label={'Continue learning ' + name}
@@ -257,7 +258,8 @@ export default function Journey({
       <div className="journey-metrics">
         <p><strong>{rewards.xp} XP</strong> <span>Level {rewards.level}</span></p>
         <p><strong>{activity.streak} days</strong> <span>Current streak</span></p>
-        <p><strong>{activity.weeklyDays}/{goal}</strong> <span>Study-day goal</span></p>
+        <p><strong>{activity.weeklyDays}/{goal}</strong> <span>Study days this week</span></p>
+        <p><strong>{activity.week.at(-1)?.active ? 'Met' : 'Open'}</strong> <span>Daily goal · one practice activity</span></p>
       </div>
       <label className="journey-goal">Weekly goal <select value={goal} disabled={savingGoal} onChange={changeGoal}>
         {weeklyGoals.map(number => <option value={number} key={number}>{number} study days</option>)}

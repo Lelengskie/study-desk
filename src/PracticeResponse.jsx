@@ -7,7 +7,7 @@ export default function PracticeResponse({ item, response, change, inputLabel = 
     {item.shared_context?.passage && <blockquote>{item.shared_context.passage}</blockquote>}
     {Array.isArray(item.shared_context?.word_bank) && <p>Word bank · {item.shared_context.word_bank.join(' · ')}</p>}
     <label>{inputLabel}
-      <input value={response} maxLength={1000} required onChange={event => change(event.target.value)} />
+      <input className="study-answer-input" type="text" spellCheck={!math} autoComplete="off" value={response} maxLength={1000} required onChange={event => change(event.target.value)} />
     </label>
     {math && <>
       <small>Enter your final value as a number, decimal or fraction.</small>
