@@ -41,6 +41,8 @@ try {
   let tutorGrades = 0
   const unscored = { id: 'a'.repeat(64), stem: 'Which option is the source value?', status: 'source_answer_available',
     options: [{ label: 'A', text: 'Sample option' }, { label: 'B', text: 'Other option' }], saved: false }
+  const typed = { ...unscored, id: 'b'.repeat(64), stem: 'What is half of one?', options: [] }
+  const selfCheck = { ...typed, id: 'c'.repeat(64), stem: 'Reword the sentence in your own words.' }
   await page.route(fakeUrl + '/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     const method = route.request().method()
@@ -63,9 +65,15 @@ try {
     if (path.endsWith('/hybrid_practice')) {
       const count = route.request().postDataJSON()?.random_count
       if (count !== undefined) assert.equal(count, 3)
-      return send([unscored])
+      return send(count === undefined ? [unscored] : [unscored, typed, selfCheck])
     }
-    if (path.endsWith('/hybrid_answer')) return send({ answer: 'A', status: unscored.status })
+    if (path.endsWith('/hybrid_practice_context')) return send({ instructions: 'Give an equivalent response.' })
+    if (path.endsWith('/hybrid_answer')) {
+      const id = route.request().postDataJSON()?.question_id
+      if (id === typed.id) return send({ answer_text: '1/2', exact_value: '1/2', status: unscored.status })
+      if (id === selfCheck.id) return send({ answer_text: 'An example sentence.', status: unscored.status })
+      return send({ answer: 'A', status: unscored.status })
+    }
     if (path.endsWith('/hybrid_feedback')) return send(null)
     if (path.endsWith('/study_progress')) return send({
       completed,
@@ -117,7 +125,19 @@ try {
   await page.getByRole('button', { name: 'Check my answer' }).click()
   await page.getByText('Correct.', { exact: true }).waitFor()
   await page.getByRole('button', { name: 'Show worked solution' }).click()
+  await page.getByRole('heading', { name: 'Understand the question' }).waitFor()
+  await page.getByRole('button', { name: 'Next Step' }).click()
+  await page.getByRole('heading', { name: 'Identify what you know' }).waitFor()
+  await page.getByRole('button', { name: 'Previous Step' }).click()
+  await page.getByRole('heading', { name: 'Understand the question' }).waitFor()
+  await page.getByLabel('Explanation depth').selectOption('standard')
   await page.getByText(/25% is 25\/100/).waitFor()
+  await page.getByRole('button', { name: 'Review fractions first' }).click()
+  await page.getByRole('img', { name: '3 of 4 equal parts shaded' }).waitFor()
+  await page.getByLabel('Enter the shaded fraction').fill('0.75')
+  await page.getByRole('button', { name: 'Check my answer' }).click()
+  await page.getByText('Correct.', { exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Continue to percentages' }).click()
   await page.getByRole('button', { name: 'Try different values' }).click()
   assert.equal(await page.getByLabel('Find the amount').inputValue(), '')
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
@@ -146,7 +166,7 @@ try {
   await page.getByRole('button', { name: 'Practice', exact: true }).click()
   await page.getByLabel('Questions per session').fill('3')
   await page.getByRole('button', { name: 'Start random practice' }).click()
-  await page.getByText('Question 1 of 1').waitFor()
+  await page.getByText('Question 1 of 3').waitFor()
   await page.getByLabel('Sample option', { exact: true }).check()
   await page.getByRole('button', { name: 'Check answer availability' }).click()
   await page.getByText('Answer: Sample option', { exact: true }).waitFor()
@@ -155,6 +175,16 @@ try {
   await page.getByLabel('Report a problem').fill('Synthetic feedback')
   await page.getByRole('button', { name: 'Send report' }).click()
   await page.getByText('Report saved.').waitFor()
+  await page.getByRole('button', { name: 'Next question' }).click()
+  await page.getByText('Give an equivalent response.').waitFor()
+  assert.equal(await page.getByText('Answer: 1/2', { exact: true }).count(), 0)
+  await page.getByLabel('Your answer').fill('0.5')
+  await page.getByRole('button', { name: 'Compare with the answer' }).click()
+  await page.getByText('Correct · Your answer: 0.5', { exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Next question' }).click()
+  await page.getByLabel('Your answer').fill('My own sentence.')
+  await page.getByRole('button', { name: 'Compare with the answer' }).click()
+  await page.getByText('Self-check · Your answer: My own sentence.').waitFor()
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
   await page.getByRole('button', { name: 'Quiz', exact: true }).click()
   await page.getByRole('button', { name: 'Start quiz: Number patterns' }).click()
@@ -184,7 +214,7 @@ try {
   await page.getByRole('heading', { name: 'Make time to study.' }).waitFor()
   assert.deepEqual([gradeCalls, tutorCalls, tutorGrades], [1, 1, 1])
   assert.deepEqual(errors, [])
-  console.log((desktop ? '1440' : '375') + ' px browser flow passed: guided concept lessons, verified study, library search, randomized unscored practice, bookmarks, reports, tutor fallback and sign-out.')
+  console.log((desktop ? '1440' : '375') + ' px browser flow passed: verified study, library search, randomized unscored practice, bookmarks, reports, tutor fallback and sign-out.')
 } finally {
   await browser?.close()
   await new Promise((resolve, reject) => server.httpServer.close(error => error ? reject(error) : resolve()))

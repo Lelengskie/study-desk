@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { client, rpc } from './api'
+import PracticeResponse from './PracticeResponse'
+import { equivalentNumber } from './practice-response.mjs'
 
 const statuses = {
   independently_verified: 'Independently verified',
@@ -141,6 +143,17 @@ function PracticeCard({ item, updateSaved }) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [context, setContext] = useState(null)
+  const options = item.options ?? []
+  const typed = options.length === 0
+  useEffect(() => {
+    if (!typed) return
+    let active = true
+    rpc('hybrid_practice_context', { question_id: item.id }).then(data => {
+      if (active) setContext(data)
+    }).catch(problem => { if (active) setError(problem.message) })
+    return () => { active = false }
+  }, [item.id, typed])
   async function act(action) {
     setBusy(true)
     setError('')
@@ -149,19 +162,22 @@ function PracticeCard({ item, updateSaved }) {
     finally { setBusy(false) }
   }
   const verified = item.status === 'independently_verified'
+  const modelAnswer = answer?.answer_text ?? answer?.answer
   return <article className="hybrid-practice-card">
     <h2>{item.stem}</h2><p>{statuses[item.status]}</p>
-    <fieldset className="hybrid-options"><legend>Choose an answer</legend>
-      {item.options.map(option => <label key={option.id ?? option.label}>
+    {typed ? (context ? <PracticeResponse item={context} response={choice} change={setChoice} /> :
+      <p role="status">Loading question context…</p>) :
+      <fieldset className="hybrid-options"><legend>Choose an answer</legend>
+      {options.map(option => <label key={option.id ?? option.label}>
         <input type="radio" name={'practice-' + item.id} checked={choice === (option.id ?? option.label)}
           onChange={() => setChoice(option.id ?? option.label)} /> {option.text}
-      </label>)}</fieldset>
+      </label>)}</fieldset>}
     <div className="actions hybrid-actions">
-      <button className="secondary" disabled={!choice || busy} onClick={() => act(async () => {
+      <button className="secondary" disabled={!choice.trim() || busy || (typed && !context)} onClick={() => act(async () => {
         const result = await rpc('hybrid_answer', { question_id: item.id })
         setSubmitted(choice)
         setAnswer(result)
-      })}>Check answer availability</button>
+      })}>{typed ? 'Compare with the answer' : 'Check answer availability'}</button>
       <button className="quiet" disabled={busy} onClick={() => act(async () => {
         await rpc('hybrid_feedback', { question_id: item.id, bookmark: !item.saved })
         updateSaved(item.id, !item.saved)
@@ -175,11 +191,13 @@ function PracticeCard({ item, updateSaved }) {
       })}>Request AI explanation</button>}
     </div>
     {answer && <div role="status">
-      {answer.answer && <p>{submitted === answer.answer ? 'Correct' : 'Incorrect'} · Your answer: {
-        item.options.find(option => (option.id ?? option.label) === submitted)?.text ?? submitted
+      {modelAnswer && <p>{typed ? (answer.exact_value != null
+        ? equivalentNumber(submitted, answer.exact_value) ? 'Correct · ' : 'Try again · '
+        : 'Self-check · ') : submitted === answer.answer ? 'Correct · ' : 'Incorrect · '}Your answer: {
+        options.find(option => (option.id ?? option.label) === submitted)?.text ?? submitted
       }</p>}
-      <p>{answer.answer ? 'Answer: ' +
-      (item.options.find(option => (option.id ?? option.label) === answer.answer)?.text ?? answer.answer)
+      <p>{modelAnswer ? 'Answer: ' +
+      (options.find(option => (option.id ?? option.label) === answer.answer)?.text ?? modelAnswer)
       : statuses[answer.status]}{answer.explanation && ' · ' + answer.explanation}</p>
     </div>}
     {ai && <p role="status">{ai.explanation ? 'AI-generated suggestion · ' + ai.explanation : 'AI explanation unavailable.'}</p>}
