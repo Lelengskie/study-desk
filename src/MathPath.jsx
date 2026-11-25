@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import MathText from './MathText'
+import FoundationGuide from './FoundationGuide'
 import PracticeResponse from './PracticeResponse'
 import { rpc } from './api'
 import { firstSeed, lastSeed, mathPath } from './math-path.mjs'
@@ -61,6 +62,7 @@ export default function MathPath({ initialConcept = 'signed', openImported }) {
       {state.unused.length === 0 && <p>All tracked variations have been tried. You can revisit them for practice.</p>}
     </>}
     <h3>{entry.title}</h3>
+    <FoundationGuide key={concept} concept={concept} />
     <details key={concept} className="concept-worked">
       <summary>Understand the concept with a worked example</summary>
       <p><MathText text={example.question} /></p>
