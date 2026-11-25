@@ -1,3 +1,4 @@
+import { useQuestionEvents } from './question-events'
 import AdultPractice from './AdultPractice'
 import { adultExercises } from './adult-exercises.mjs'
 import { templateQuality } from './template-quality.mjs'
@@ -32,12 +33,14 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
   const [application, setApplication] = useState(true)
   const [foundation, setFoundation] = useState(false)
   const [remedy, setRemedy] = useState(false)
+  const [reviewerEmpty,setReviewerEmpty] = useState(false)
   const [assessment,setAssessment] = useState(false)
   const [selectedBand, setSelectedBand] = useState('')
   const [concept, setConcept] = useState(initialConcept)
   function choose(id) {
     setApplication(true)
     setFoundation(false)
+    setReviewerEmpty(false)
     setAssessment(false)
     setSelectedBand('')
     setRemedy(false)
@@ -130,8 +133,8 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
       <button className="secondary" onClick={() => setApplication(value=>!value)}>
         {applying ? 'Return to guided exercise' : 'Apply with original reviewer questions'}</button>
     </div>}
-    {!applying && !foundation && exercises && <AdultPractice key={concept + assessment} exercises={exercises}
-      onNextConcept={nextConcept ? () => choose(nextConcept) : null} />}
+    {!applying && !foundation && exercises && <AdultPractice key={concept + assessment} exercises={exercises} concept={concept}
+      reason={assessment ? 'independent_check' : reviewerEmpty ? 'no_exact_unused_reviewer' : 'selected_guided'} onNextConcept={nextConcept ? () => choose(nextConcept) : null} />}
     {!applying && !assessment && !foundation && !exercises && <p>No unused concept-matched reviewer question is available. {hasLegacy ? 'Study the example, choose targeted practice, or move to the next concept.' : 'You can continue to the next concept.'}</p>}
     {!assessment && hasLegacy && !foundation && <button className="secondary" onClick={() => {
       setApplication(false);setFoundation(true)
@@ -141,7 +144,7 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
       key={'variation-' + concept + '-' + assessment} concept={concept} assessment={assessment} entry={entry} state={state}
       sync={sync} refresh={refresh} onNextConcept={nextConcept ? () => choose(nextConcept) : null}
       onOriginalPractice={!assessment && coverage?.imported ? () => {setFoundation(false);setApplication(true)} : null} />}
-    {applying && renderPractice?.(concept,reviewFoundation,selectedBand || band,() => setApplication(false))}
+    {applying && renderPractice?.(concept,reviewFoundation,selectedBand || band,() => {setReviewerEmpty(true);setApplication(false)})}
     {nextConcept && (applying || !exercises && !assessment && !foundation) && <button className="secondary" onClick={() => choose(nextConcept)}>Next concept</button>}
   </section>
 }
@@ -155,6 +158,8 @@ function Variation({ concept, entry, state, sync, refresh, assessment, onNextCon
   const [step, setStep] = useState(0)
   const [busy, setBusy] = useState(false)
   const problem = entry.generate(variant)
+  const events = useQuestionEvents(variant,'generated',concept,templateQuality[concept] === 'foundation' ? 'foundation' : null,
+    assessment ? 'independent_check' : 'selected_guided')
 
   async function check(event) {
     event.preventDefault()
@@ -176,6 +181,7 @@ function Variation({ concept, entry, state, sync, refresh, assessment, onNextCon
         setBusy(false)
       }
     }
+    events.record('submitted')
     setGraded(correct)
     setStep(0)
     show(saveFailed ? 'Progress could not be saved.' : '')
@@ -183,7 +189,7 @@ function Variation({ concept, entry, state, sync, refresh, assessment, onNextCon
 
   return <>
     <p className="small muted">{templateQuality[concept] === 'foundation' ? 'Foundation Exercise' : 'Generated Learning Exercise'}</p>
-    <p className="answer-prompt"><MathText text={problem.question} /></p>
+    <p className="answer-prompt" ref={events.element}><MathText text={problem.question} /></p>
     <form onSubmit={check}>
       <fieldset disabled={busy || graded !== null} className="math-input-group">
         <PracticeResponse item={{}} math inputLabel="Your calculation" response={response}
@@ -213,8 +219,9 @@ function Variation({ concept, entry, state, sync, refresh, assessment, onNextCon
         Badge holders<div>Members <div>Volunteers</div></div>
       </div>}
       <div className="actions">
-        {onNextConcept && <button className={graded ? 'primary' : 'secondary'} onClick={onNextConcept}>Next concept</button>}
+        {onNextConcept && <button className={graded ? 'primary' : 'secondary'} onClick={()=>{events.record('completed');onNextConcept()}}>Next concept</button>}
         <button className={graded && onNextConcept ? 'secondary' : 'primary'} onClick={() => {
+          events.record('completed')
           if (onOriginalPractice) { onOriginalPractice(); return }
           next(advanceVariant(variant,state.unused))
           change(''); show(''); setHints(0); setStep(0); setGraded(null)

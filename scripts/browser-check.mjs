@@ -47,6 +47,7 @@ try {
   let weeklyGoal = null
   let curatedStage = 0
   const requestedBands = []
+  const questionEvents = []
   await page.route(fakeUrl + '/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     const method = route.request().method()
@@ -87,6 +88,10 @@ try {
       assert.equal(value.used_example,false)
       if (value.chosen === 0) curatedStage++
       return send({correct:value.chosen===0,correct_choice:0,feedback:'One clerk is singular. The clerks refers to more than one.'})
+    }
+    if (path.endsWith('/learn_record_question_event')) {
+      questionEvents.push(route.request().postDataJSON())
+      return send(null)
     }
     if (path.endsWith('/learning_next_scoped')) {
       const {study_topics,study_band}=route.request().postDataJSON()
@@ -440,6 +445,9 @@ try {
   await page.getByRole('button',{name:'Back to Learn',exact:true}).waitFor()
   await page.getByRole('button', { name: 'Sign out' }).click()
   await page.getByRole('heading', { name: 'Make time to study.' }).waitFor()
+  assert(questionEvents.some(e=>e.question_source==='generated' && e.transition==='selected' && e.reason==='no_exact_unused_reviewer'))
+  assert(questionEvents.some(e=>e.question_source==='generated' && e.transition==='submitted'))
+  assert(questionEvents.some(e=>e.question_source==='original' && e.transition==='selected' && e.reason==='concept_match'))
   assert.deepEqual(errors, [])
   console.log((desktop ? '1440' : '375') + ' px browser flow passed: verified study, library search, randomized unscored practice, bookmarks, reports, tutor fallback and sign-out.')
 } finally {

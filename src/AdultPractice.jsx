@@ -1,17 +1,23 @@
+import { useQuestionEvents } from './question-events'
 import React, { useState } from 'react'
 import { AnswerFeedback } from './AnswerFeedback'
 import MathText from './MathText'
 import PracticeResponse from './PracticeResponse'
 import { equivalentNumber, rational } from './practice-response.mjs'
 
-export default function AdultPractice({ exercises, onNextConcept }) {
+export default function AdultPractice({ concept, exercises, reason, onNextConcept }) {
   const [index,setIndex] = useState(0)
   const [response,setResponse] = useState('')
   const [result,setResult] = useState(null)
   const [message,setMessage] = useState('')
   const [step,setStep] = useState(0)
   const problem = exercises[index]
-  return <div className="concept-worked">
+  const events = useQuestionEvents(index+1,'generated',concept,problem.level.toLowerCase(),reason)
+  function next() {
+    events.record(result===null ? 'skipped' : 'completed')
+    setIndex(index+1);setResponse('');setResult(null);setStep(0)
+  }
+  return <div className="concept-worked" ref={events.element}>
     <p className="small muted">Generated Learning Exercise · {problem.level} · Unscored</p>
     <h3><MathText text={problem.question} /></h3>
     <form onSubmit={event=>{
@@ -19,6 +25,7 @@ export default function AdultPractice({ exercises, onNextConcept }) {
       if (result !== null) return
       if (!rational(response)) {setMessage('Enter a number, decimal or fraction.');return}
       setMessage('')
+      events.record('submitted')
       setResult(equivalentNumber(response,problem.answer))
     }}>
       <fieldset disabled={result !== null} className="math-input-group">
@@ -26,6 +33,7 @@ export default function AdultPractice({ exercises, onNextConcept }) {
       </fieldset>
       {result === null && <button className="primary">Check my calculation</button>}
     </form>
+    {result===null && index+1<exercises.length && <button className="secondary" onClick={next}>Skip generated question</button>}
     {message && <p role="status">{message}</p>}
     {result !== null && <>
       <AnswerFeedback correct={result} answer={problem.answer} />
@@ -37,10 +45,8 @@ export default function AdultPractice({ exercises, onNextConcept }) {
       </div>
       <p>Common mistake: <MathText text={problem.mistake} /></p>
       <div className="actions">
-        {onNextConcept && <button className="primary" onClick={onNextConcept}>Next concept</button>}
-        {index+1 < exercises.length && <button className="secondary" onClick={()=>{
-          setIndex(index+1);setResponse('');setResult(null);setStep(0)
-        }}>{result ? 'Practice more' : 'Try a similar question'}</button>}
+        {onNextConcept && <button className="primary" onClick={()=>{events.record('completed');onNextConcept()}}>Next concept</button>}
+        {index+1 < exercises.length && <button className="secondary" onClick={next}>{result ? 'Practice more' : 'Try a similar question'}</button>}
       </div>
     </>}
   </div>
