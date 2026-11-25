@@ -8,6 +8,13 @@ const material = {
     options: ['each family received only a cup', 'the water belonged to families'],
     reason: 'The small amount each family received is evidence that there was too little water.',
   },
+  'reading-order': {
+    lesson: 'Look for the sentence that introduces the topic. A sentence starting with “this” or “these” usually needs an earlier idea to refer to.',
+    example: '“The office changed its opening hours” introduces a change. “This change shortened the queue” then explains its effect.',
+    question: 'Which sentence should come first in a paragraph?',
+    options: ['The library introduced a reservation system.', 'This system reduced waiting time.'],
+    reason: 'Introduce the reservation system before using “this system” to refer to it.',
+  },
   grammar: {
     lesson: 'Find the subject of the clause before choosing the verb. A phrase between the subject and verb can contain a different noun.',
     example: 'In “The box of forms is heavy,” the subject is box. “Of forms” describes the box.',
@@ -21,6 +28,13 @@ const material = {
     question: 'All typed notices are archived. This notice is archived. Can you prove it was typed?',
     options: ['No. Other notices may also be archived.', 'Yes. Being archived proves it was typed.'],
     reason: 'The premise connects typed notices to the archive in one direction. It does not exclude other archived notices.',
+  },
+  'data-interpretation': {
+    lesson: 'An absolute increase and a percentage increase answer different questions. Use the starting value as the denominator for the percentage.',
+    example: 'Going from 20 to 30 adds 10. Those 10 are half of the starting 20, so the increase is 50%.',
+    question: 'An office processed 40 applications last month and 50 this month. What was the percentage increase?',
+    options: ['25%', '20%'],
+    reason: 'Subtract 40 from 50 to get 10. Divide the increase by the starting 40 to get one quarter, or 25%.',
   },
   constitution: {
     lesson: 'Read each condition of a constitutional rule separately. One qualifying condition does not necessarily satisfy the full rule.',
@@ -36,6 +50,13 @@ const material = {
     question: 'Which surname goes first in an alphabetical file?',
     options: ['Dela Cruz', 'Delos Santos'],
     reason: 'After Del, the a in Dela Cruz comes before the o in Delos Santos.',
+  },
+  spelling: {
+    lesson: 'Read every letter in the model before transcribing. Common words can still contain doubled letters.',
+    example: '“Address” contains two d’s and two s’s. Compare each group with the original.',
+    question: 'Which entry exactly matches “committee”?',
+    options: ['committee', 'commitee'],
+    reason: 'The model has two t’s. The shorter entry omits one.',
   },
   filipino: {
     lesson: 'Hanapin ang mga pahiwatig sa pangungusap upang maunawaan ang salita.',

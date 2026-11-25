@@ -394,10 +394,10 @@ function Desk({ email, profileId }) {
     : embeddedPractice.topic === 'concept:filipino'
       ? <div key={track + 'filipino'}>
           {!adaptiveLesson && <CurriculumPrimer concept="filipino" onReady={() => setAdaptiveLesson(true)} />}
-          {adaptiveLesson && <LearningPractice profileId={profileId} track={track} subject="Verbal Ability"
+          {adaptiveLesson && <LearningPractice track={track} subject="Verbal Ability"
             topics={['concept:filipino']} onFinish={() => setAdaptiveLesson(false)} />}
         </div>
-      : <LearningPractice profileId={profileId} key={track + embeddedPractice.subject + embeddedPractice.topic} track={track}
+      : <LearningPractice key={track + embeddedPractice.subject + embeddedPractice.topic} track={track}
           subject={embeddedPractice.subject || null} topics={[embeddedPractice.topic]} />)
 
 
@@ -423,8 +423,8 @@ function Desk({ email, profileId }) {
       {pathStart ? <>
         <button className="quiet back" onClick={() => {setPathStart(null); setEmbeddedPractice(null)}}>Back to {tab === 'repeat' ? 'reviews' : journeySubject || 'Learn'}</button>
         <MathPath key={pathStart} initialConcept={pathStart} importedCoverage={conceptCoverage}
-          renderPractice={(concept, onFinish) => <LearningPractice profileId={profileId} key={track + concept} track={track}
-            subject={conceptCoverage(concept).subject} topics={['concept:' + concept]} onFinish={onFinish} />}
+          renderPractice={(concept, onFinish, band) => <LearningPractice key={track + concept} track={track}
+            subject={conceptCoverage(concept).subject} topics={['concept:' + concept]} band={band} onFinish={onFinish} />}
           onConceptChange={() => setEmbeddedPractice(null)} />
         {importedPanel}
       </> : flow ? <>
@@ -454,7 +454,7 @@ function Desk({ email, profileId }) {
         </article>
         {!adaptiveLesson && hasPrimer(detail.id) && <CurriculumPrimer key={detail.id}
           concept={detail.id} onReady={() => continueLesson(detail)} />}
-        {adaptiveLesson && <LearningPractice profileId={profileId} key={track+detail.id} track={track} subject={detail.track}
+        {adaptiveLesson && <LearningPractice key={track+detail.id} track={track} subject={detail.track}
           topics={[detail.id,...lessonConcepts.map(row=>'concept:'+row.concept)]}
           onFinish={() => setAdaptiveLesson(false)} />}
         <ConceptLab topic={detail.id} />

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { nextLearningActivity, practiceScopes } from '../src/learning-session.mjs'
+import { learningBand, nextLearningActivity, practiceScopes } from '../src/learning-session.mjs'
 
 test('scheduled retention and remediation take precedence over examination application', () => {
   const standard = {due:false,weak:false,independent:2,exposed:false,hasImported:true}
@@ -16,4 +16,15 @@ test('practice tries exact concepts before subject-wide fallback', () => {
     {subject:'Numerical Ability',topic:'concept:fractions'},
     {subject:'Numerical Ability',topic:null},
   ])
+})
+
+test('difficulty falls after a mistake and requires diverse retained work for upper bands', () => {
+  const clean = Array.from({length:5},()=>({correct:true,independent:true}))
+  assert.equal(learningBand([],0,1),'foundation')
+  assert.equal(learningBand(clean.slice(0,2),0,1),'beginner')
+  assert.equal(learningBand(clean,0,1),'intermediate')
+  assert.equal(learningBand(clean,2,1),'intermediate')
+  assert.equal(learningBand(clean,2,2),'advanced')
+  assert.equal(learningBand(clean,2,3),'examination')
+  assert.equal(learningBand([...clean,{correct:false,independent:true}],2,3),'foundation')
 })

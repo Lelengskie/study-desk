@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import MathText from './MathText'
-import { nextLearningActivity } from './learning-session.mjs'
+import { learningBand, nextLearningActivity } from './learning-session.mjs'
 import FoundationGuide from './FoundationGuide'
 import PracticeResponse from './PracticeResponse'
 import { rpc } from './api'
@@ -53,8 +53,10 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
   const example = entry.generate(1)
   const nextConcept = daily.find(id => id !== concept)
   const coverage = importedCoverage?.(concept)
+  // Current generators have one or two authored structures. Never infer advanced readiness from numeric substitutions.
+  const band = learningBand(rows.filter(row => row.concept === concept),state.retained,1)
   const activity = nextLearningActivity({ due: state.dueNow, weak: state.weak,
-    independent: state.success, exposed, hasImported: Boolean(renderPractice && coverage?.imported) })
+    independent: band === 'intermediate' ? state.success : 0, exposed, hasImported: Boolean(renderPractice && coverage?.imported) })
   const applying = application
   function reviewFoundation() {
     setExposed(true)
@@ -98,7 +100,7 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
       sync={sync} refresh={refresh} advancesToApplication={activity === 'application'} onAdvance={() => {
         if (activity === 'application') setApplication(true)
       }} />}
-    {sync === 'ready' && applying && renderPractice?.(concept,reviewFoundation)}
+    {sync === 'ready' && applying && renderPractice?.(concept,reviewFoundation,band)}
     <div className="actions">
       {nextConcept && <button className="secondary" onClick={() => choose(nextConcept)}>
         Continue to {mathPath[nextConcept].title.toLowerCase()}</button>}

@@ -64,6 +64,12 @@ try {
       id: 'fixture', title: 'Sample mock examination', format: 'pdf', role: 'mock exam',
       editions: ['2027'], drive_file_id: 'fixture-only'
     }])
+    if (path.endsWith('/learning_next')) {
+      const {completed_id} = route.request().postDataJSON() ?? {}
+      return send(completed_id === unscored.id ? typed : completed_id === typed.id ? selfCheck
+        : completed_id === selfCheck.id ? null : unscored)
+    }
+    if (path.endsWith('/learning_finish')) return send(null)
     if (path.endsWith('/hybrid_practice')) {
       const input = route.request().postDataJSON() ?? {}
       return send(input.after_id ? [] : [unscored, typed, selfCheck])
@@ -272,6 +278,7 @@ try {
   await page.getByRole('button', { name: 'Compare with the answer' }).click()
   await page.getByText('Correct · Your answer: 0.5', { exact: true }).waitFor()
   await page.getByRole('button', { name: 'Next question' }).click()
+  await page.getByRole('heading',{name:'Reword the sentence in your own words.'}).waitFor()
   await page.getByLabel('Your answer').fill('My own sentence.')
   await page.getByRole('button', { name: 'Compare with the answer' }).click()
   await page.getByText('Self-check · Your answer: My own sentence.').waitFor()
