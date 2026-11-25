@@ -4,6 +4,7 @@ import MathText from './MathText'
 const guides = {
   signed: ['Signed numbers tell you both a size and a direction from zero. On a number line, adding a positive number moves right.', 'Add the payment to the balance. If you stop to the left of zero, the result is still negative.'],
   order: ['An expression is a written calculation. Multiplication describes equal groups and is evaluated before addition.', 'Complete any parentheses first. After powers, do multiplication and division left to right, then addition and subtraction left to right.'],
+  'fraction-understanding': ['The numerator counts chosen pieces. The denominator counts all the equal pieces.','Change each slider to see how the two counts work together.'],
   fractions: ['The denominator below the bar gives the number of equal parts in one whole. The numerator counts how many parts you have.', 'For addition or subtraction, rename fractions in equal-sized pieces first. Multiply or divide both parts of a fraction by the same nonzero number to keep the same value.'],
   decimals: ['The first place after the decimal point measures tenths. The next measures hundredths. Ten hundredths make one tenth.', 'Align the decimal points when adding. Adding a zero at the end of a decimal changes the spelling but preserves the value.'],
   percent: ['Percent means per hundred. A percentage describes a share of a specified whole.', 'Identify what 100% represents before multiplying. A 25% share of 80 is smaller than a 25% share of 200.'],
@@ -57,6 +58,7 @@ export default function FoundationGuide({ concept }) {
   return <div className="concept-worked">
     <h4>Understand the concept</h4>
     {guide.map(line => <p key={line}>{line}</p>)}
+    {concept === 'fraction-understanding' && <FractionExplorer />}
     {concept === 'fractions' && <><FractionExplorer /><FractionSkills /></>}
   </div>
 }

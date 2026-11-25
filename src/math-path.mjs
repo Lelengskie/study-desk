@@ -1,4 +1,6 @@
-export const analyticalConcepts = new Set(['sequence', 'venn', 'syllogism', 'arrangement', 'sufficiency'])
+import { foundationSkills } from './foundation-skills.mjs'
+
+export const analyticalConcepts = new Set(['sequence', 'venn', 'syllogism', 'arrangement', 'sufficiency', 'deductive-counterexample'])
 export const firstSeed = 2
 export const lastSeed = 999
 
@@ -8,7 +10,8 @@ const lesson = (title, prerequisite, generate) => ({ title, prerequisite, genera
 
 // Each explanation is generated from the same bounded integers as its question.
 export const mathPath = {
-  signed: lesson('Signed arithmetic', null, n => ({
+  ...foundationSkills,
+  signed: lesson('Signed arithmetic', 'basic-arithmetic', n => ({
     question: `A balance of −${n + 3} pesos increases by 3 pesos. What is the new balance in pesos?`,
     answer: String(-n),
     steps: ['A negative balance means you owe money. An increase moves right on the number line.', `Start at −${n + 3} and move 3 places right. You still owe ${n} pesos, so the balance is −${n}.`, `Check by subtracting the increase. −${n} − 3 = −${n + 3}.`],
@@ -19,7 +22,7 @@ export const mathPath = {
     steps: ['Multiplication groups equal quantities. Complete that operation before adding.', `2 × 3 = 6, so ${n} + 6 = ${n + 6}.`, `Check by expanding the multiplication into ${n} + 3 + 3.`],
     mistake: 'Adding the first two numbers would change which quantities the multiplication groups.',
   })),
-  fractions: lesson('Adding fractions', 'order', n => ({
+  fractions: lesson('Adding fractions', 'fraction-common-denominator', n => ({
     question: `Calculate 1/2 + 1/${2 * n}.`, answer: `${n + 1}/${2 * n}`,
     steps: ['The denominator gives the number of equal pieces in a whole. Addition requires pieces of the same size.', `Each half equals ${n} pieces of size 1/${2 * n}. Add one more piece to get ${n + 1}/${2 * n}.`, `Check by subtracting one piece. ${n}/${2 * n} is exactly one half.`],
     mistake: 'Adding denominators changes the size of the pieces.',

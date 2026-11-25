@@ -4,6 +4,18 @@ import { firstSeed, lastSeed, mathPath } from '../src/math-path.mjs'
 import { equivalentNumber } from '../src/practice-response.mjs'
 
 const expected = {
+  'basic-arithmetic': n => n+18-7,
+  'fraction-understanding': n => `${2*n}/${2*n+6}`,
+  'fraction-equivalent': n => (3*n+3)/(n+1)*n,
+  'fraction-simplify': n => 2*n/2,
+  'fraction-common-denominator': n => 4*n+2,
+  'fraction-subtract': n => `${6*n-2}/${8*n}`,
+  'fraction-multiply': n => `${4*n}/${6*n+6}`,
+  'fraction-divide': n => `${6*n}/${2*n+4}`,
+  'fraction-mixed': n => `${10*n+4}/10`,
+  'fraction-word': n => (4*n+4)/4*3,
+  'fraction-review': n => `${6*n+(n%2===0?4:-4)}/${10*n}`,
+  'deductive-counterexample': n => 1+Math.trunc(n/10),
   signed: n => -n, order: n => n + 2 * 3, fractions: n => `${2 * n + 2}/${4 * n}`,
   decimals: n => `0.${n}5`, percent: n => 4 * n / 4, ratio: n => 2 * n / 2 * 3,
   linear: n => (3 * n + 4 - 4) / 3, average: n => (n + (n + 2) + (n + 7)) / 3,

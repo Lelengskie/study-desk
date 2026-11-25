@@ -8,6 +8,7 @@ import { equivalentNumber, rational } from './practice-response.mjs'
 import { conceptState, dailyConcepts } from './concept-progress.mjs'
 
 const misconceptionPrompts = {
+  possible_divisor_reciprocal_error: 'Did you multiply by one third? Count how many thirds fit. Use three as the multiplier.',
   possible_order_error: 'Did you add before multiplying? Try grouping the repeated amount first.',
   possible_sign_error: 'Did the balance stay below zero after the deposit? Sketch the move on a number line.',
   possible_denominator_error: 'Did you add denominators? Draw equal-sized pieces before adding.',
