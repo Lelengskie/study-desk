@@ -13,7 +13,7 @@ const statuses = {
 }
 
 export default function Hybrid({ library, track, modules, initialTopic = '', initialSubject = '', conceptCounts = [], embedded = false }) {
-  const [filters, setFilters] = useState({ q: '', subject: initialSubject, topic: initialTopic, source: '', status: '', level: track })
+  const [filters, setFilters] = useState({ q: '', subject: initialSubject, topic: initialTopic, source: '', status: embedded ? 'source_answer_available' : '', level: track })
   const [query, setQuery] = useState(filters)
   const [page, setPage] = useState({ rows: [], after: '', previous: [] })
   const [count, setCount] = useState(10)

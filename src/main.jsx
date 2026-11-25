@@ -343,6 +343,11 @@ function Desk({ email, profileId }) {
   const recommendations = dailyConcepts(conceptRows, mathPath)
   const conceptDue = Object.keys(states).filter(id => states[id].dueNow && states[id].unused.length)
   const weak = Object.keys(states).filter(id => states[id].weak)
+  function conceptCoverage(concept) {
+    const subject = analyticalConcepts.has(concept) && concept !== 'sequence' ? 'Analytical Ability' : 'Numerical Ability'
+    const imported = conceptCounts.find(row => row.concept === concept && row.subject === subject)?.imported ?? 0
+    return { subject, imported }
+  }
   function openImported(subject, concept) {
     setEmbeddedPractice({ subject, topic: concept ? 'concept:' + concept : '' })
   }
@@ -397,11 +402,11 @@ function Desk({ email, profileId }) {
       {error && <p role="alert" className="notice error">{error}</p>}
       {pathStart ? <>
         <button className="quiet back" onClick={() => {setPathStart(null); setEmbeddedPractice(null)}}>Back to {tab === 'repeat' ? 'reviews' : journeySubject || 'Learn'}</button>
-        <MathPath key={pathStart} initialConcept={pathStart} openImported={concept => {
-          const hasNumericalSequence = concept === 'sequence' && conceptCounts.some(row => row.concept === concept && row.subject === 'Numerical Ability')
-          const subject = analyticalConcepts.has(concept) && !hasNumericalSequence ? 'Analytical Ability' : 'Numerical Ability'
-          openImported(subject, conceptCounts.some(row => row.subject === subject && row.concept === concept) ? concept : null)
-        }} onConceptChange={() => setEmbeddedPractice(null)} />
+        <MathPath key={pathStart} initialConcept={pathStart} importedCoverage={conceptCoverage}
+          openImported={concept => {
+            const coverage = conceptCoverage(concept)
+            openImported(coverage.subject, coverage.imported ? concept : null)
+          }} onConceptChange={() => setEmbeddedPractice(null)} />
         {importedPanel}
       </> : flow ? <>
         <button className="quiet back" onClick={() => { setFlow(null); setError('') }}>End session</button>

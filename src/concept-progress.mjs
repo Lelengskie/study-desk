@@ -6,6 +6,14 @@ const seedCount = lastSeed - firstSeed + 1
 // 313 is coprime to 998, so this order visits every seed exactly once.
 const seedOrder = Array.from({ length: seedCount }, (_, index) => firstSeed + (index * 313) % seedCount)
 
+const seedPosition = new Map(seedOrder.map((seed, index) => [seed, index]))
+
+export function advanceVariant(current, unused) {
+  const pool = unused.length ? unused : seedOrder
+  const position = seedPosition.get(current) ?? -1
+  return pool.find(seed => seedPosition.get(seed) > position) ?? pool[0]
+}
+
 export function conceptState(rows, skill, now = Date.now()) {
   const attempts = rows.filter(row => row.concept === skill)
     .sort((a, b) => new Date(a.attempted_at) - new Date(b.attempted_at))

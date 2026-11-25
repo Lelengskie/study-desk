@@ -5,7 +5,7 @@ import PracticeResponse from './PracticeResponse'
 import { rpc } from './api'
 import { firstSeed, lastSeed, mathPath } from './math-path.mjs'
 import { equivalentNumber, rational } from './practice-response.mjs'
-import { conceptState, dailyConcepts } from './concept-progress.mjs'
+import { advanceVariant, conceptState, dailyConcepts } from './concept-progress.mjs'
 
 const misconceptionPrompts = {
   possible_divisor_reciprocal_error: 'Did you multiply by one third? Count how many thirds fit. Use three as the multiplier.',
@@ -19,7 +19,7 @@ const misconceptionPrompts = {
   possible_double_counting: 'Did you count readers in both groups twice? Place those readers in the overlap first.',
 }
 
-export default function MathPath({ initialConcept = 'signed', openImported, onConceptChange }) {
+export default function MathPath({ initialConcept = 'signed', openImported, importedCoverage, onConceptChange }) {
   const [concept, setConcept] = useState(initialConcept)
   function choose(id) {
     setConcept(id)
@@ -45,6 +45,7 @@ export default function MathPath({ initialConcept = 'signed', openImported, onCo
   // Seed 1 is reserved for display and is outside the server's scored seed range.
   const example = entry.generate(1)
   const nextConcept = daily.find(id => id !== concept)
+  const coverage = importedCoverage?.(concept)
   return <section className="surface concept-lab">
     <h2>Math foundations</h2>
     <label>Concept <select value={concept} onChange={event => choose(event.target.value)}>
@@ -67,7 +68,8 @@ export default function MathPath({ initialConcept = 'signed', openImported, onCo
       {state.unused.length === 0 && <p>All tracked variations have been tried. You can revisit them for practice.</p>}
     </>}
     <h3>{entry.title}</h3>
-    <p>{lastSeed-firstSeed+1} generated practice variations</p>
+    <p>{lastSeed-firstSeed+1} generated practice variations{sync === 'ready' && ' · ' + state.unused.length + ' without a recorded attempt'}</p>
+    {coverage && <p>{coverage.imported} imported questions linked to this concept</p>}
     <FoundationGuide key={'guide-' + concept} concept={concept} />
     <details key={'example-' + concept} className="concept-worked">
       <summary>Understand the concept with a worked example</summary>
@@ -79,7 +81,9 @@ export default function MathPath({ initialConcept = 'signed', openImported, onCo
     {sync !== 'loading' && <Variation key={'variation-' + concept} concept={concept} entry={entry} state={state}
       sync={sync} refresh={refresh} />}
     <div className="actions">
-      {openImported && <button className="secondary" onClick={() => openImported(concept)}>Open imported practice</button>}
+      {openImported && <button className="secondary" onClick={() => openImported(concept)}>
+        {coverage?.imported ? 'Open imported practice' : 'Browse subject practice'}
+      </button>}
       {nextConcept && <button className="secondary" onClick={() => choose(nextConcept)}>
         Continue to {mathPath[nextConcept].title.toLowerCase()}</button>}
     </div>
@@ -131,7 +135,7 @@ function Variation({ concept, entry, state, sync, refresh }) {
         <button type="button" className="secondary" disabled={busy || revealed >= problem.steps.length}
           onClick={() => reveal(revealed + 1)}>{revealed ? 'Next step' : 'Show hint'}</button>
         <button type="button" className="quiet" disabled={busy} onClick={() => {
-          next(state.unused.find(n => n !== variant) ?? (variant === lastSeed ? firstSeed : variant + 1))
+          next(advanceVariant(variant, state.unused))
           change(''); show(''); reveal(0)
         }}>Try a new calculation</button>
       </div>
