@@ -1,8 +1,19 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { rpc } from './api'
-import { mathPath } from './math-path.mjs'
+import { firstSeed, lastSeed, mathPath } from './math-path.mjs'
 import { equivalentNumber, rational } from './practice-response.mjs'
 import { conceptState, dailyConcepts } from './concept-progress.mjs'
+
+const misconceptionPrompts = {
+  possible_order_error: 'Did you add before multiplying? Try grouping the repeated amount first.',
+  possible_sign_error: 'Did the balance stay below zero after the deposit? Sketch the move on a number line.',
+  possible_denominator_error: 'Did you add denominators? Draw equal-sized pieces before adding.',
+  possible_place_value_error: 'Did you line up the decimal points? Label the place value of each digit.',
+  possible_percent_as_quantity: 'Does 25 describe pesos or a share out of 100? Try expressing the percentage as a fraction.',
+  possible_discount_amount: 'Did you calculate the amount saved? Subtract it from the starting price to find what you pay.',
+  possible_reversed_ratio: 'Which amount is measured in cups of water? Write the units beside each quantity in the ratio.',
+  possible_double_counting: 'Did you count readers in both groups twice? Place those readers in the overlap first.',
+}
 
 export default function MathPath() {
   const [concept, choose] = useState('signed')
@@ -20,6 +31,8 @@ export default function MathPath() {
   const entry = mathPath[concept]
   const state = conceptState(rows, concept)
   const daily = dailyConcepts(rows, mathPath)
+  const last = rows.filter(row => row.concept === concept).at(-1)
+  const followUp = misconceptionPrompts[last?.mistake]
   const prerequisite = entry.prerequisite && mathPath[entry.prerequisite]
   return <section className="surface concept-lab">
     <h2>Math foundations</h2>
@@ -34,6 +47,7 @@ export default function MathPath() {
       <p>{state.success} correct on {state.independent} independent variations.
         {state.mastery ? ' Mastery demonstrated.' : state.weak ? ' Review the concept or its prerequisite.' : ''}
         {state.dueNow ? ' Review due.' : state.due && ' Next review ' + new Date(state.due).toLocaleDateString() + '.'}</p>
+      {followUp && <p>{followUp}</p>}
       {daily.length > 0 && <div className="actions" aria-label="Recommended today">
         {daily.map(key => <button type="button" className="secondary" key={key} onClick={() => choose(key)}>
           {mathPath[key].title}
@@ -47,7 +61,7 @@ export default function MathPath() {
 }
 
 function Variation({ concept, entry, state, sync, refresh }) {
-  const [variant, next] = useState(() => state.unused[0] ?? 2)
+  const [variant, next] = useState(() => state.unused[0] ?? firstSeed)
   const [response, change] = useState('')
   const [feedback, show] = useState('')
   const [revealed, reveal] = useState(0)
@@ -88,13 +102,17 @@ function Variation({ concept, entry, state, sync, refresh }) {
         <button type="button" className="secondary" disabled={busy || revealed >= problem.steps.length}
           onClick={() => reveal(revealed + 1)}>{revealed ? 'Next step' : 'Show hint'}</button>
         <button type="button" className="quiet" disabled={busy} onClick={() => {
-          next(state.unused.find(n => n > variant) ?? state.unused.find(n => n !== variant) ?? (variant === 9 ? 2 : variant + 1))
+          next(state.unused.find(n => n !== variant) ?? (variant === lastSeed ? firstSeed : variant + 1))
           change(''); show(''); reveal(0)
         }}>Try a new calculation</button>
       </div>
     </form>
     <p role="status">{feedback}</p>
     {revealed > 0 && <ol>{problem.steps.slice(0, revealed).map(step => <li key={step}>{step}</li>)}</ol>}
+    {revealed > 0 && concept === 'syllogism' && <div className="logic-groups" aria-label="Groups in the deduction">
+      Badge holders
+      <div>Members <div>Volunteers</div></div>
+    </div>}
     {revealed === problem.steps.length && <p>{problem.mistake}</p>}
   </>
 }

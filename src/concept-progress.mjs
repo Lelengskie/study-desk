@@ -1,5 +1,10 @@
+import { firstSeed, lastSeed } from './math-path.mjs'
+
 const day = 86_400_000
 const intervals = [1, 3, 7, 14]
+const seedCount = lastSeed - firstSeed + 1
+// 313 is coprime to 998, so this order visits every seed exactly once.
+const seedOrder = Array.from({ length: seedCount }, (_, index) => firstSeed + (index * 313) % seedCount)
 
 export function conceptState(rows, skill, now = Date.now()) {
   const attempts = rows.filter(row => row.concept === skill)
@@ -18,11 +23,12 @@ export function conceptState(rows, skill, now = Date.now()) {
       due = at + intervals[retained] * day
     }
   }
+  const used = new Set(attempts.map(row => row.variant))
   return {
     independent: independent.length, success, due, retained,
     weak: attempts.length > 0 && attempts.slice(-2).some(row => !row.correct || !row.independent),
     mastery: independent.length >= 4 && success / independent.length >= .9 && retained >= 1,
-    unused: Array.from({ length: 8 }, (_, index) => index + 2).filter(n => !attempts.some(row => row.variant === n)),
+    unused: seedOrder.filter(n => !used.has(n)),
     dueNow: due !== null && now >= due,
   }
 }

@@ -259,3 +259,10 @@ progress { display: block; width: 100%; height: .55rem; accent-color: var(--acce
 .fraction-grid { display: grid; gap: 3px; }
 .fraction-grid span { min-height: 27px; background: #e4e9f2; border: 1px solid #78869c; }
 .fraction-grid .shaded { background: #204db6; }
+
+.logic-groups, .logic-groups div {
+  border: 1px solid currentColor;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  margin-block-start: 0.4rem;
+}

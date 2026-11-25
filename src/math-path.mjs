@@ -1,3 +1,8 @@
+export const firstSeed = 2
+export const lastSeed = 999
+
+// A seed is persisted with its skill. Existing seed values retain their original meaning.
+const decimalPlaces = n => n < 10 ? 1 : String(n).length
 const lesson = (title, prerequisite, generate) => ({ title, prerequisite, generate })
 
 // Each explanation is generated from the same bounded integers as its question.
@@ -18,11 +23,20 @@ export const mathPath = {
     steps: ['The denominator gives the number of equal pieces in a whole. Addition requires pieces of the same size.', `Each half equals ${n} pieces of size 1/${2 * n}. Add one more piece to get ${n + 1}/${2 * n}.`, `Check by subtracting one piece. ${n}/${2 * n} is exactly one half.`],
     mistake: 'Adding denominators changes the size of the pieces.',
   })),
-  decimals: lesson('Decimals and place value', 'fractions', n => ({
-    question: `Calculate 0.${n} + 0.05.`, answer: `${10 * n + 5}/100`,
-    steps: ['The first digit after the decimal point counts tenths. The second counts hundredths.', `0.${n} is ${10 * n} hundredths. Add 5 hundredths to get ${10 * n + 5} hundredths.`, `Check by subtracting 5 hundredths to recover ${10 * n} hundredths.`],
-    mistake: 'Line up decimal points so the same place values are added.',
-  })),
+  decimals: lesson('Decimals and place value', 'fractions', n => {
+    const places = decimalPlaces(n)
+    const denominator = 10 ** (places + 1)
+    const left = `0.${n}`
+    const right = `0.${'0'.repeat(places)}5`
+    return {
+      question: `Calculate ${left} + ${right}.`,
+      answer: `${10*n+5}/${denominator}`,
+      steps: [`Each place to the right of the decimal point is worth one tenth of the previous place. Turn both numbers into parts of size 1/${denominator} before adding.`,
+        `${left} has ${10*n} of those parts. Add the 5 parts in ${right} to get ${10*n+5}/${denominator}.`,
+        `Subtract 5 of those parts to get ${10*n}/${denominator}, which equals ${left}.`],
+      mistake: 'Line up decimal points so the same place values are added.',
+    }
+  }),
   percent: lesson('Percentages', 'decimals', n => ({
     question: `What is 25% of ${4 * n} pesos?`, answer: String(n),
     steps: ['Percent means out of 100. The fraction 25/100 simplifies to 1/4.', `Divide ${4 * n} pesos into four equal groups. Each group contains ${n} pesos.`, `Check that four groups of ${n} make the original ${4 * n} pesos.`],
@@ -43,21 +57,36 @@ export const mathPath = {
     steps: ['The average is the amount each entry would have if the total were shared equally.', `Add the entries to get ${3 * n + 9}. Divide by the 3 entries to get ${n + 3}.`, `Check that three copies of ${n + 3} total ${3 * n + 9}.`],
     mistake: 'Divide by the number of entries, including any zero entries.',
   })),
-  speed: lesson('Distance, speed and time', 'linear', n => ({
-    question: `How far in kilometers does a vehicle travel in ${n} hours at a constant 35 kilometers per hour?`, answer: String(35 * n),
-    steps: ['A speed of 35 kilometers per hour means 35 kilometers are covered in each hour.', `Multiply ${n} hours by 35 kilometers per hour to get ${35 * n} kilometers. The hours cancel.`, `Divide the distance by ${n} hours to recover 35 kilometers per hour.`],
-    mistake: 'Convert the travel time to hours before using a speed measured per hour.',
-  })),
+  speed: lesson('Distance, speed and time', 'linear', n => {
+    const hours = n < 10 ? n : 1 + (n-10)%12
+    const rate = n < 10 ? 35 : 40 + Math.floor((n-10)/12)
+    return {
+      question: `How far in kilometers does a vehicle travel in ${hours} hours at a constant ${rate} kilometers per hour?`,
+      answer: String(hours*rate),
+      steps: [`A speed of ${rate} kilometers per hour means ${rate} kilometers are covered in each hour.`,
+        `Multiply ${hours} hours by ${rate} kilometers per hour to get ${hours*rate} kilometers. The hours cancel.`,
+        `Divide the distance by ${hours} hours to recover ${rate} kilometers per hour.`],
+      mistake: 'Convert the travel time to hours before using a speed measured per hour.',
+    }
+  }),
   sequence: lesson('Arithmetic sequences', 'order', n => ({
     question: `The sequence ${n}, ${n + 4}, ${n + 8} keeps increasing by the same amount. What comes next?`, answer: String(n + 12),
     steps: ['The common difference is the amount added at each step.', `Subtract ${n} from ${n + 4} to get 4. Add 4 to ${n + 8} to get ${n + 12}.`, `Check that ${n + 12} minus ${n + 8} equals 4.`],
     mistake: 'Use the difference between neighboring terms.',
   })),
-  age: lesson('Age problems', 'linear', n => ({
-    question: `Two siblings are 4 years apart. Their ages add to ${2 * n + 4}. How old is the younger sibling?`, answer: String(n),
-    steps: ['Let x be the younger age. The older age is x plus four.', `Their sum is 2x + 4. Subtract 4 from ${2 * n + 4}, then divide ${2 * n} by 2 to get ${n} years.`, `Check that ${n} plus ${n + 4} gives the stated total and the ages differ by 4.`],
-    mistake: 'The older sibling is four years older than the younger sibling.',
-  })),
+  age: lesson('Age problems', 'linear', n => {
+    const younger = n < 10 ? n : 10 + (n-10) % 40
+    const gap = n < 10 ? 4 : 1 + Math.floor((n-10)/40)
+    const total = 2*younger+gap
+    return {
+      question: `Two relatives are ${gap} years apart. Their ages add to ${total}. How old is the younger relative?`,
+      answer: String(younger),
+      steps: ['Let x be the younger age. Add the age gap to get the older age.',
+        `Their sum is 2x + ${gap}. Subtract ${gap} from both sides to remove the age gap. Divide ${2*younger} by 2 because the remaining amount is two copies of the younger age.`,
+        `Check that ${younger} plus ${younger+gap} gives ${total} and that the difference is ${gap} years.`],
+      mistake: 'Remove the age gap before dividing the shared amount by two.',
+    }
+  }),
   work: lesson('Combined work rates', 'fractions', n => ({
     question: `One person takes ${2 * n} hours to complete a job. A second takes ${2 * n} hours. How many hours will they take together at constant rates?`, answer: String(n),
     steps: ['Find each hourly rate as a fraction of one job.', `Each person completes 1/${2 * n} of the job in one hour. Together they do 2/${2 * n}, or 1/${n}, per hour. That takes ${n} hours.`, `After ${n} hours each person has finished half the job, so together they finish one whole job.`],
@@ -102,4 +131,31 @@ export const mathPath = {
       `The three regions contain 6 comic-only readers, ${n} readers of both and 4 mystery-only readers. Together they total ${n+10}.`],
     mistake: 'Subtract each shared reader once so that reader is still included.',
   })),
+  syllogism: lesson('Syllogisms and deductions', 'venn', n => ({
+    question: `All ${n} club volunteers are members, and every member has a badge. How many of the volunteers must have badges?`,
+    answer: String(n),
+    steps: ['“All” means that there are no exceptions in the named group. Place volunteers inside the group of members.',
+      'Every member is inside the group of badge holders. Since volunteers are members, they are inside that group too.',
+      `Check one volunteer at a time. Each of the ${n} must have a badge, even if some badge holders are outside the club.`],
+    mistake: 'The rules do not let you conclude that every badge holder is a volunteer.',
+  })),
+  arrangement: lesson('Logical arrangements', 'order', n => ({
+    question: `In a queue, Kai is at position ${n}. Mo is two places after Kai. Lin is one place before Mo. What is Lin’s position?`,
+    answer: String(n+1),
+    steps: ['Give every person a position. “After” increases the position number and “before” decreases it.',
+      `Move from position ${n} to ${n+2} to place Mo. Subtract one to place Lin at ${n+1}.`,
+      `Check the order. Positions ${n}, ${n+1}, and ${n+2} place Kai before Lin and Lin immediately before Mo.`],
+    mistake: 'Draw the queue from front to back. Apply each relationship to the person it names.',
+  })),
+  sufficiency: lesson('Data sufficiency', 'linear', n => {
+    const target = n % 2 ? 'x' : 'y'
+    return {
+    question: `You need to find ${target}. Statement 1 says x + y = ${2*n+1}. Statement 2 says y = ${n+1}. Enter 1 if only statement 1 is sufficient, 2 if only statement 2 is sufficient, or 3 if both are needed.`,
+    answer: n % 2 ? '3' : '2',
+    steps: [`Statement 1 gives a sum. The pairs (${n}, ${n+1}) and (${n-1}, ${n+2}) both satisfy it, so it does not fix ${target}.`,
+      n % 2 ? 'Statement 2 fixes y only. Alone, it gives no relationship to x.' : `Statement 2 directly gives y = ${n+1}.`,
+      n % 2 ? `Together, substitute y into the sum. Subtract ${n+1} from both sides to isolate x = ${n}. Both statements are needed.` : 'Statement 2 alone answers the question. The sum is unnecessary.'],
+    mistake: 'Test each statement alone before combining them.',
+    }
+  }),
 }
