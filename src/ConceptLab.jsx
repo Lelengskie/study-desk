@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { equivalentNumber } from './practice-response.mjs'
 import PracticeResponse from './PracticeResponse'
+import MathPath from './MathPath'
 
 const lessons = {
   fractions: {
@@ -78,6 +79,7 @@ export default function ConceptLab({ topic }) {
       </button>
     </div>}
     <Exercise key={lesson.title} lesson={lesson} />
+    {topic === 'arithmetic' && <MathPath />}
   </> : null
 }
 
