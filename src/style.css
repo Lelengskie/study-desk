@@ -345,3 +345,8 @@ fieldset { min-inline-size: 0; }
 .answer-explanation { line-height: 1.6; white-space: pre-line; }
 .question-evidence { display: grid; gap: .35rem; color: var(--muted); }
 .question-evidence progress { width: min(100%, 14rem); }
+
+/* Long concept names must not widen the lesson on narrow screens. */
+.concept-lab { grid-template-columns: minmax(0, 1fr); }
+.concept-lab select { min-inline-size: 0; max-inline-size: 100%; }
+.concept-lab .actions > * { min-inline-size: 0; max-inline-size: 100%; }

@@ -5,7 +5,7 @@ import { rpc } from './api'
 
 const labels = ['Foundation', 'Beginner', 'Intermediate', 'Advanced', 'Examination', 'Retention']
 
-export default function CuratedSkill({ skill, subject, continuePractice, onProgress }) {
+export default function CuratedSkill({ skill, subject, continuePractice, onProgress, onNextConcept, onPreviousConcept, onTest }) {
   const [item,setItem] = useState(null)
   const [choice,setChoice] = useState(null)
   const [result,setResult] = useState(null)
@@ -36,6 +36,11 @@ export default function CuratedSkill({ skill, subject, continuePractice, onProgr
     {item && !error && <>
       <p><MathText text={item.lesson} /></p>
       <details key={round} className="concept-worked" onToggle={event => {if(event.currentTarget.open) setAssisted(true)}}><summary>Worked example</summary><p><MathText text={item.example} /></p></details>
+      <nav className="actions" aria-label="Lesson navigation">
+        {onPreviousConcept && <button className="secondary" onClick={onPreviousConcept}>Previous concept</button>}
+        {!result && onNextConcept && <button className="secondary" onClick={onNextConcept}>Skip concept</button>}
+        {onTest && <button className="secondary" onClick={onTest}>Test my knowledge</button>}
+      </nav>
       {item.stage < 6 && <p>{labels[item.stage]}</p>}
       {waiting && <p>Retention check available {new Date(item.due).toLocaleString()}.</p>}
       {item.stage === 6 && <p>{item.mastered ? 'Skill mastered after an independent retention check.' :
@@ -55,9 +60,10 @@ export default function CuratedSkill({ skill, subject, continuePractice, onProgr
       </>}
       {result && <>
         <AnswerFeedback correct={result.correct} answer={item.options[result.correct_choice]} explanation={result.feedback} />
-        <button className="primary" disabled={busy} onClick={load}>
+        {onNextConcept && <button className={result.correct ? 'primary' : 'secondary'} onClick={onNextConcept}>Next concept</button>}
+        <button className={result.correct && onNextConcept ? 'secondary' : 'primary'} disabled={busy} onClick={load}>
           {item.stage === 5 && result.correct ? 'Complete retention review' : result.correct ?
-            'Continue to next activity' : item.stage === 0 || item.stage === 5 ? 'Review the concept' : 'Try an easier activity'}</button>
+            'Practice at the next difficulty' : item.stage === 0 || item.stage === 5 ? 'Review the concept' : 'Try an easier activity'}</button>
       </>}
       {(waiting || item.stage === 6) && <button className="primary" onClick={continuePractice}>Continue with reviewer practice</button>}
     </>}

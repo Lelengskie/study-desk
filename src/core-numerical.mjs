@@ -2,6 +2,15 @@ const build = (title, prerequisite, generate) => ({ title, prerequisite, generat
 const exercise = (question, answer, steps, mistake) => ({ question, answer: String(answer), steps, mistake })
 
 export const coreNumerical = {
+  'whole-subtract': build('Whole-number subtraction', 'basic-arithmetic', n => {
+    const removed = 2+n%8
+    const start = n+removed
+    return exercise(`There are ${start} forms. A clerk files ${removed}. How many forms remain unfiled?`, n,
+      [`Start with ${start} forms. Filing takes ${removed} out of the unfiled group, so subtract.`,
+        `Calculate ${start} − ${removed} = ${n} forms.`,
+        `Check using addition. ${n} unfiled plus ${removed} filed equals the original ${start}.`],
+      'Subtract the filed count from the starting count. The remaining count is smaller than the start.')
+  }),
   'whole-multiply': build('Whole-number multiplication', 'basic-arithmetic', n => {
     const size = 2 + n % 8
     return exercise(`There are ${n} packets of ${size} labels. How many labels are there?`, n * size,

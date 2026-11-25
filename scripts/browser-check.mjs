@@ -17,7 +17,7 @@ try {
     ? { executablePath: process.env.REVIEWER_CHROME }
     : {})
   const desktop = process.argv.includes('--desktop')
-  const page = await browser.newPage({ viewport: { width: desktop ? 1440 : 375, height: 812 }, isMobile: !desktop, hasTouch: !desktop })
+  const page = await browser.newPage({ viewport: { width: Number(process.env.STUDY_WIDTH) || (desktop ? 1440 : 375), height: 812 }, isMobile: !desktop, hasTouch: !desktop })
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
   const quizOptions = [{ id: '1', text: 'Twelve' }, { id: '2', text: 'Five' }]
@@ -46,6 +46,7 @@ try {
   const conceptAttempts = []
   let weeklyGoal = null
   let curatedStage = 0
+  const requestedBands = []
   await page.route(fakeUrl + '/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     const method = route.request().method()
@@ -88,7 +89,9 @@ try {
       return send({correct:value.chosen===0,correct_choice:0,feedback:'One clerk is singular. The clerks refers to more than one.'})
     }
     if (path.endsWith('/learning_next')) {
-      const {completed_id} = route.request().postDataJSON() ?? {}
+      const {completed_id,study_topics,study_band} = route.request().postDataJSON() ?? {}
+      if (study_topics?.includes('concept:fractions')) requestedBands.push(study_band)
+
       return send(completed_id === unscored.id ? typed : completed_id === typed.id ? selfCheck
         : completed_id === selfCheck.id ? null : unscored)
     }
@@ -118,10 +121,11 @@ try {
     if (path.endsWith('/v2_concept_progress')) return send(conceptAttempts)
     if (path.endsWith('/v2_concept_attempt')) {
       const attempt = route.request().postDataJSON()
-      assert.equal(attempt.skill, 'decimals')
+      assert.ok(['decimals','basic-arithmetic'].includes(attempt.skill))
       assert.equal(attempt.hint_count, 0)
-      const correct = Number(attempt.numerator) / Number(attempt.denominator) === .25
-      conceptAttempts.push({ concept: 'decimals', variant: attempt.variant_no, independent: true,
+      const expected = attempt.skill==='basic-arithmetic' ? attempt.variant_no+11 : .25
+      const correct = Number(attempt.numerator) / Number(attempt.denominator) === expected
+      conceptAttempts.push({ concept: attempt.skill, variant: attempt.variant_no, independent: true,
         correct, attempted_at: new Date().toISOString() })
       return send(correct)
     }
@@ -176,8 +180,33 @@ try {
   await page.getByRole('button', { name: 'Continue learning: addition and subtraction' }).click()
   await page.getByRole('heading', { name: 'Math foundations' }).waitFor()
   assert.equal(await page.getByLabel('Concept').inputValue(), 'basic-arithmetic')
+  await page.getByLabel('Your calculation').fill('13')
+  await page.getByRole('button',{name:'Check my calculation'}).click()
+  await page.getByText('Correct! Well done.',{exact:true}).waitFor()
+  await page.getByRole('heading',{name:/Worked solution · Step 1/}).waitFor()
+  await page.getByRole('button',{name:'Next step',exact:true}).click()
+  await page.getByRole('heading',{name:/Worked solution · Step 2/}).waitFor()
+  await page.getByRole('button',{name:'Previous step',exact:true}).click()
+  await page.getByRole('button',{name:'Next concept',exact:true}).click()
+  assert.equal(await page.getByLabel('Concept').inputValue(),'whole-subtract')
+  await page.getByRole('button',{name:'Skip concept',exact:true}).click()
+  assert.equal(await page.getByLabel('Concept').inputValue(),'whole-multiply')
+  await page.getByRole('button',{name:'Previous concept',exact:true}).click()
+  assert.equal(await page.getByLabel('Concept').inputValue(),'whole-subtract')
+  await page.getByRole('button',{name:'Test my knowledge',exact:true}).click()
+  await page.getByRole('heading',{name:'Independent knowledge check',exact:true}).waitFor()
+  assert.equal(await page.getByRole('button',{name:'Show hint',exact:true}).count(),0)
+  assert.equal(await page.getByText('Understand the concept with a worked example',{exact:true}).count(),0)
+  await page.getByRole('button',{name:'Return to lesson',exact:true}).click()
+
   await page.getByLabel('Concept').selectOption('fractions')
   assert.equal(await page.getByRole('heading',{name:'Explore fraction skills',exact:true}).count(),1)
+  await page.getByLabel('Reviewer difficulty').selectOption('advanced')
+  await page.getByRole('button',{name:'Apply with original reviewer questions',exact:true}).click()
+  await page.getByRole('heading',{name:'Which option is the source value?',exact:true}).waitFor()
+  assert.equal(requestedBands.at(-1),'advanced')
+  await page.getByRole('button',{name:'Return to guided exercise',exact:true}).click()
+
   await page.getByLabel('Concept').selectOption('signed')
   assert.equal(await page.getByRole('heading',{name:'Explore fraction skills',exact:true}).count(),0)
   await page.getByRole('button', { name: 'Back to Learn' }).click()
@@ -209,7 +238,7 @@ try {
     await page.locator('.concept-lab').filter({has:page.getByText('Correct! Well done.',{exact:true})})
       .screenshot({path:process.env.STUDY_CAPTURE_PREFIX+'-correct.png'})
   }
-  await page.getByRole('button',{name:'Continue to next activity',exact:true}).click()
+  await page.getByRole('button',{name:'Practice at the next difficulty',exact:true}).click()
   await page.getByText('Beginner',{exact:true}).waitFor()
   await page.getByRole('button',{name:'Learn',exact:true}).click()
 
@@ -279,7 +308,7 @@ try {
   await pathway.getByRole('button', { name: 'Check my calculation' }).click()
   await pathway.getByText('Correct! Well done.', { exact: true }).waitFor()
   await pathway.getByText(/1 correct on 1 independent variations/).waitFor()
-  await pathway.getByRole('button', { name: 'Try a new calculation' }).click()
+  await pathway.getByRole('button', { name: 'Practice more' }).click()
   assert.equal(await pathway.getByLabel('Your calculation').inputValue(), '')
   const missedQuestion = await pathway.locator('.answer-prompt').textContent()
   await pathway.getByLabel('Your calculation').fill('0')

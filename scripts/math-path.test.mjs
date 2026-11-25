@@ -4,6 +4,7 @@ import { firstSeed, lastSeed, mathPath } from '../src/math-path.mjs'
 import { equivalentNumber } from '../src/practice-response.mjs'
 
 const expected = {
+  'whole-subtract': n => (n+2+n%8)-(2+n%8),
   'factor-pairs': n => ((2+n%7)*n)/(2+n%7),
   'gcf-lcm': n => n%2 ? (3*n)*(5*n)/n : n,
   'fraction-decimal': n => n%2 ? `${n}/100` : `${n*10}/100`,

@@ -14,7 +14,7 @@ import { conceptLabel } from './concept-labels.mjs'
 import ConceptLab from './ConceptLab'
 import MathPath from './MathPath'
 import Journey from './Journey'
-import { curatedTitles, extraSkills } from './curriculum.mjs'
+import { curriculum, curatedTitles, extraSkills, independentlyTestedSkills } from './curriculum.mjs'
 import { analyticalConcepts, mathPath } from './math-path.mjs'
 import { conceptState, dailyConcepts } from './concept-progress.mjs'
 import './style.css'
@@ -385,6 +385,8 @@ function Desk({ email, profileId, googleIdentity }) {
   }
   function openCurated(id) {
     setConceptTest(null)
+    setActiveSkill(null)
+    setPathStart(null)
     setTab('learn')
     if (extraSkills[id]) {
       setActiveSkill(id)
@@ -397,6 +399,24 @@ function Desk({ email, profileId, googleIdentity }) {
     } else {
       const module = modules.find(row => row.id === id)
       if (module) openLesson(module)
+    }
+  }
+  function curatedNavigation(subject, skill) {
+    const sequence = Object.values(curriculum[subject] ?? {}).flat().filter(key => key.startsWith('@') || mathPath[key])
+    const index = sequence.indexOf('@' + skill)
+    function go(key) {
+      setActiveSkill(null)
+      setDetail(null)
+      setEmbeddedPractice(null)
+      setTab('learn')
+      setJourneySubject(subject)
+      if (key?.startsWith('@')) openCurated(key.slice(1))
+      else if (key) openPath(key)
+    }
+    return {
+      onNextConcept: () => go(index < 0 ? null : sequence[index+1]),
+      onPreviousConcept: index > 0 ? () => go(sequence[index-1]) : null,
+      onTest: independentlyTestedSkills.has(skill) ? () => startConceptTest(curatedTitles[skill]+' · Concept test',[skill]) : null,
     }
   }
   const dueSkills = Object.keys(curatedTitles).filter(id => curated[id]?.due && (id === 'filipino' || activeIds.has(id) || (extraSkills[id] && (groups.includes(extraSkills[id][0]) || extraSkills[id][0] === 'Filipino'))))
@@ -448,7 +468,7 @@ function Desk({ email, profileId, googleIdentity }) {
         conceptCounts={conceptCounts} />
     : embeddedPractice.topic === 'concept:filipino'
       ? <div key={track + 'filipino'}>
-          {showCurated && <CuratedSkill onProgress={refreshCurated} key="filipino" skill="filipino" subject="Filipino" continuePractice={() => {setShowCurated(false); setAdaptiveLesson(true)}} />}
+          {showCurated && <CuratedSkill onProgress={refreshCurated} key="filipino" skill="filipino" subject="Filipino" {...curatedNavigation("Filipino","filipino")} continuePractice={() => {setShowCurated(false); setAdaptiveLesson(true)}} />}
           {adaptiveLesson && <LearningPractice track={track} subject="Verbal Ability"
             topics={['concept:filipino']} onFinish={() => setAdaptiveLesson(false)} />}
         </div>
@@ -480,7 +500,7 @@ function Desk({ email, profileId, googleIdentity }) {
         <ConceptTest {...conceptTest} openSkill={openCurated} />
       </> : activeSkill ? <>
         <button className="quiet back" onClick={() => {setActiveSkill(null);setEmbeddedPractice(null)}}>Back to Learn</button>
-        <CuratedSkill onProgress={refreshCurated} key={activeSkill} skill={activeSkill} subject={extraSkills[activeSkill][0]}
+        <CuratedSkill onProgress={refreshCurated} key={activeSkill} skill={activeSkill} subject={extraSkills[activeSkill][0]} {...curatedNavigation(extraSkills[activeSkill][0],activeSkill)}
           continuePractice={() => openImported(extraSkills[activeSkill][0] === 'Filipino' ? 'Verbal Ability' : extraSkills[activeSkill][0], extraSkills[activeSkill][2])} />
         {activeSkill === 'government-branches' && <p><a href="https://officialgazette.gov.ph/constitutions/1987-constitution/"
           target="_blank" rel="noreferrer">Read Articles VI–VIII in the Official Gazette</a></p>}
@@ -492,7 +512,7 @@ function Desk({ email, profileId, googleIdentity }) {
       </> : pathStart ? <>
         <button className="quiet back" onClick={() => {setPathStart(null); setEmbeddedPractice(null)}}>Back to {tab === 'repeat' ? 'reviews' : journeySubject || 'Learn'}</button>
         <MathPath key={pathStart} initialConcept={pathStart} importedCoverage={conceptCoverage}
-          renderPractice={(concept, onFinish, band) => <LearningPractice key={track + concept} track={track}
+          renderPractice={(concept, onFinish, band) => <LearningPractice key={track + concept + band} track={track}
             subject={conceptCoverage(concept).subject} topics={['concept:' + concept]} band={band} onFinish={onFinish} />}
           onConceptChange={() => setEmbeddedPractice(null)} />
         {importedPanel}
@@ -521,7 +541,7 @@ function Desk({ email, profileId, googleIdentity }) {
             </li>)}</ul>
           </details>}
         </article>
-        {showCurated && <CuratedSkill onProgress={refreshCurated} key={detail.id} skill={detail.id} subject={detail.track}
+        {showCurated && <CuratedSkill onProgress={refreshCurated} key={detail.id} skill={detail.id} subject={detail.track} {...curatedNavigation(detail.track,detail.id)}
           continuePractice={() => {setShowCurated(false); continueLesson(detail)}} />}
         {!showCurated && !assessedSkills.has(detail.id) && !adaptiveLesson && hasPrimer(detail.id) && <CurriculumPrimer key={detail.id}
           concept={detail.id} onReady={() => continueLesson(detail)} />}
