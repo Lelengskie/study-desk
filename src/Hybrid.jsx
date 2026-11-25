@@ -193,7 +193,7 @@ export function PracticeCard({ item, updateSaved, onResult }) {
     : answer.answer == null ? null : submitted === answer.answer)
   const answerLabel = options.find(option => (option.id ?? option.label) === answer?.answer)?.text ?? modelAnswer
   return <article className="hybrid-practice-card">
-    <h2>{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem}</h2><p>{statuses[item.status]}</p>
+    <h2>{item.subject === 'Numerical Ability' ? <MathText text={item.stem} /> : item.stem}</h2><p>{item.answer_reliability === 'independently_verified' ? 'Independently validated answer · Unscored practice' : statuses[item.status]}</p>
     {typed ? (context ? <PracticeResponse item={context} math={item.subject === 'Numerical Ability'} response={choice} change={setChoice} /> :
       <p role="status">Loading question context…</p>) :
       <AnswerChoices name={'practice-'+item.id} options={options.map(option => ({id:option.id ?? option.label,text:option.text}))}
@@ -239,6 +239,7 @@ export function PracticeCard({ item, updateSaved, onResult }) {
       </section>}
 
     {answer && <AnswerFeedback correct={gradedCorrect} explanation={answer.explanation}>
+      {answer.explanation_origin === 'deterministically_checked' && <p className="small muted">Deterministically checked worked explanation</p>}
       {modelAnswer && <><p>{gradedCorrect === true ? 'Correct' : gradedCorrect === false ? 'Incorrect' : 'Self-check'} · Your answer: {
         options.find(option => (option.id ?? option.label) === submitted)?.text ?? submitted}</p>
         <p>Answer: {present(answerLabel)}</p></>}

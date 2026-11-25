@@ -2,13 +2,19 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { adultExercises } from '../src/adult-exercises.mjs'
 import { mathPath } from '../src/math-path.mjs'
-import { templateQuality } from '../src/template-quality.mjs'
+import { activeLegacySeeds, templateQuality } from '../src/template-quality.mjs'
 
 test('every historical template has an explicit quality decision', () => {
   assert.deepEqual(Object.keys(templateQuality).sort(),Object.keys(mathPath).sort())
   assert.equal(templateQuality['basic-arithmetic'],'retired')
+  const counts = Object.entries(templateQuality).reduce((totals,[skill,kind]) => {
+    totals[kind] = (totals[kind] ?? 0) + activeLegacySeeds(skill).length
+    for (const seed of activeLegacySeeds(skill)) assert(seed>=2 && seed<=999)
+    return totals
+  }, {})
+  assert.deepEqual(counts,{retired:0,foundation:63,targeted:56})
   assert.deepEqual(Object.fromEntries(Object.entries(Object.groupBy(Object.values(templateQuality),value=>value))
-    .map(([value,items])=>[value,items.length])),{retired:6,foundation:21,targeted:20})
+    .map(([value,items])=>[value,items.length])),{retired:12,foundation:21,targeted:14})
 })
 
 test('adult practice uses distinct structures and exact answers', () => {

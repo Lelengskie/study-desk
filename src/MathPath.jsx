@@ -1,7 +1,7 @@
 import { useQuestionEvents } from './question-events'
 import AdultPractice from './AdultPractice'
 import { adultExercises } from './adult-exercises.mjs'
-import { templateQuality } from './template-quality.mjs'
+import { activeLegacySeeds, templateQuality } from './template-quality.mjs'
 import { AnswerFeedback } from './AnswerFeedback'
 import React, { useCallback, useEffect, useState } from 'react'
 import MathText from './MathText'
@@ -9,7 +9,7 @@ import { learningBand } from './learning-session.mjs'
 import FoundationGuide from './FoundationGuide'
 import PracticeResponse from './PracticeResponse'
 import { rpc } from './api'
-import { analyticalConcepts, firstSeed, lastSeed, mathPath } from './math-path.mjs'
+import { analyticalConcepts, mathPath } from './math-path.mjs'
 import { equivalentNumber, rational } from './practice-response.mjs'
 import { advanceVariant, conceptState, dailyConcepts } from './concept-progress.mjs'
 
@@ -75,7 +75,9 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
   const band = learningBand(rows.filter(row => row.concept === concept),state.retained,1)
   const applying = application && !assessment && Boolean(renderPractice)
   const exercises = adultExercises[concept]
-  const hasLegacy = templateQuality[concept] !== 'retired'
+  const pool = activeLegacySeeds(concept)
+  const fresh = state.unused.filter(seed=>pool.includes(seed))
+  const hasLegacy = pool.length > 0
   const adultCheck = assessment && Boolean(exercises)
   function reviewFoundation() {
     setApplication(false)
@@ -107,10 +109,10 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
     <nav className="actions" aria-label="Lesson navigation">
       {previousConcept && <button className="secondary" onClick={() => choose(previousConcept)}>Previous concept</button>}
       {nextConcept && <button className="secondary" onClick={() => choose(nextConcept)}>Skip concept</button>}
-      {(hasLegacy || exercises) && <button className="secondary" onClick={() => {setApplication(false);setFoundation(false);setAssessment(value=>!value)}}>
+      {(fresh.length > 0 || exercises || assessment) && <button className="secondary" onClick={() => {setApplication(false);setFoundation(false);setAssessment(value=>!value)}}>
         {assessment ? 'Return to lesson' : 'Test my knowledge'}</button>}
     </nav>
-    {foundation && <p>{lastSeed-firstSeed+1} optional practice variants</p>}
+    {foundation && <p>{pool.length} exercises in this optional collection</p>}
     {coverage && <p>{coverage.imported} imported questions linked to this concept</p>}
     {!assessment && hasLegacy && <>
     <FoundationGuide key={'guide-' + concept} concept={concept} />
@@ -139,9 +141,9 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
     {!assessment && hasLegacy && !foundation && <button className="secondary" onClick={() => {
       setApplication(false);setFoundation(true)
     }}>{templateQuality[concept] === 'foundation' ? 'Start optional foundation exercise' : 'Start targeted generated exercise'}</button>}
-    {!applying && (assessment || foundation) && <h3>{assessment ? 'Independent knowledge check' : state.dueNow && state.unused.length > 0 ? 'Check what you remember' : 'Try it independently'}</h3>}
+    {!applying && (assessment || foundation) && <h3>{assessment ? 'Independent knowledge check' : state.dueNow && fresh.length > 0 ? 'Check what you remember' : 'Try it independently'}</h3>}
     {sync !== 'loading' && !applying && !adultCheck && (assessment || foundation) && <Variation
-      key={'variation-' + concept + '-' + assessment} concept={concept} assessment={assessment} entry={entry} state={state}
+      key={'variation-' + concept + '-' + assessment} concept={concept} assessment={assessment} entry={entry} pool={pool} fresh={fresh}
       sync={sync} refresh={refresh} onNextConcept={nextConcept ? () => choose(nextConcept) : null}
       onOriginalPractice={!assessment && coverage?.imported ? () => {setFoundation(false);setApplication(true)} : null} />}
     {applying && renderPractice?.(concept,reviewFoundation,selectedBand || band,() => {setReviewerEmpty(true);setApplication(false)})}
@@ -149,8 +151,8 @@ export default function MathPath({ initialConcept = 'signed', renderPractice, im
   </section>
 }
 
-function Variation({ concept, entry, state, sync, refresh, assessment, onNextConcept, onOriginalPractice }) {
-  const [variant, next] = useState(() => (assessment ? state.unused[1] : null) ?? state.unused[0] ?? firstSeed)
+function Variation({ concept, entry, pool, fresh, sync, refresh, assessment, onNextConcept, onOriginalPractice }) {
+  const [variant, next] = useState(() => (assessment ? fresh[1] : null) ?? fresh[0] ?? pool[0])
   const [response, change] = useState('')
   const [feedback, show] = useState('')
   const [graded, setGraded] = useState(null)
@@ -223,7 +225,7 @@ function Variation({ concept, entry, state, sync, refresh, assessment, onNextCon
         <button className={graded && onNextConcept ? 'secondary' : 'primary'} onClick={() => {
           events.record('completed')
           if (onOriginalPractice) { onOriginalPractice(); return }
-          next(advanceVariant(variant,state.unused))
+          next(advanceVariant(variant,fresh.length ? fresh : pool))
           change(''); show(''); setHints(0); setStep(0); setGraded(null)
         }}>{graded ? 'Practice more' : 'Try a similar question'}</button>
       </div>

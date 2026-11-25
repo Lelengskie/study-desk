@@ -28,8 +28,8 @@ export const curriculum = {
     'Interpreting information': ['@data-interpretation','sufficiency','Data interpretation','Mixed multi-step cases','Timed analytical challenges'],
   },
   'General Information': {
-    'The Constitution and government': ['@constitution','@government-branches','Constitutional rights'],
-    'Public service and society': ['RA 6713 and public-service ethics','Peace and human rights','Environmental management'],
+    'The Constitution and government': ['@constitution','@government-branches','@civil-rights'],
+    'Public service and society': ['@public-ethics','Peace and human rights','Environmental management'],
   },
   'Clerical Ability': {
     'Filing and indexing': ['@clerical','@clerical-indexing','@clerical-secondary','@clerical-numeric'],
@@ -38,11 +38,13 @@ export const curriculum = {
 }
 
 export const independentlyTestedSkills = new Set([
-  'verbal-evidence','verbal-context','verbal-tenses','analytical-analogy','analytical-classification',
+  'civil-rights','public-ethics','verbal-evidence','verbal-context','verbal-tenses','analytical-analogy','analytical-classification',
   'analytical-evidence','filipino-reading','clerical-secondary',
 ])
 
 export const extraSkills = {
+  'civil-rights': ['General Information','Constitutional rights in public life',null],
+  'public-ethics': ['General Information','Public service ethics under RA 6713',null],
   'verbal-evidence': ['Verbal Ability','Supporting details','reading'],
   'verbal-context': ['Verbal Ability','English context clues','context'],
   'verbal-tenses': ['Verbal Ability','Verb tense and time','grammar'],

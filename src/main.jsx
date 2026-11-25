@@ -1,3 +1,4 @@
+import { activeLegacySeeds } from './template-quality.mjs'
 import { AnswerChoices, AnswerFeedback } from './AnswerFeedback'
 import MathText from './MathText'
 
@@ -371,7 +372,7 @@ function Desk({ email, profileId, googleIdentity }) {
   const groups = [...new Set(modules.map((module) => module.track))]
   const states = Object.fromEntries(Object.keys(mathPath).map(id => [id, conceptState(conceptRows, id)]))
   const recommendations = dailyConcepts(conceptRows, mathPath)
-  const conceptDue = Object.keys(states).filter(id => states[id].dueNow && states[id].unused.length)
+  const conceptDue = Object.keys(states).filter(id => states[id].dueNow && states[id].unused.some(seed=>activeLegacySeeds(id).includes(seed)))
   const weak = Object.keys(states).filter(id => states[id].weak)
   function conceptCoverage(concept) {
     const subject = analyticalConcepts.has(concept) && concept !== 'sequence' ? 'Analytical Ability' : 'Numerical Ability'
@@ -510,8 +511,10 @@ function Desk({ email, profileId, googleIdentity }) {
         <button className="quiet back" onClick={() => {setActiveSkill(null);setEmbeddedPractice(null)}}>Back to Learn</button>
         <CuratedSkill onProgress={refreshCurated} key={activeSkill} skill={activeSkill} subject={extraSkills[activeSkill][0]} {...curatedNavigation(extraSkills[activeSkill][0],activeSkill)} reviewer={curatedReviewer(extraSkills[activeSkill][0],activeSkill)}
           continuePractice={() => openImported(extraSkills[activeSkill][0] === 'Filipino' ? 'Verbal Ability' : extraSkills[activeSkill][0], extraSkills[activeSkill][2])} />
-        {activeSkill === 'government-branches' && <p><a href="https://officialgazette.gov.ph/constitutions/1987-constitution/"
-          target="_blank" rel="noreferrer">Read Articles VI–VIII in the Official Gazette</a></p>}
+        {['government-branches','civil-rights'].includes(activeSkill) && <p><a href="https://officialgazette.gov.ph/constitutions/1987-constitution/"
+          target="_blank" rel="noreferrer">Read {activeSkill === 'civil-rights' ? 'Article III' : 'Articles VI–VIII'} in the Official Gazette</a></p>}
+        {activeSkill === 'public-ethics' && <p><a href="https://officialgazette.gov.ph/1989/02/20/republic-act-no-06713/"
+          target="_blank" rel="noreferrer">Read RA 6713 in the Official Gazette</a></p>}
         {embeddedPractice && <LearningPractice key={activeSkill} track={track}
           subject={embeddedPractice.subject} topics={[embeddedPractice.topic]} />}
       </> : test ? <>
