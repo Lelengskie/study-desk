@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client'
 import { client, rpc, tutor } from './api'
 import Hybrid from './Hybrid'
 import CuratedSkill from './CuratedSkill'
+import ConceptTest from './ConceptTest'
 import VerifiedLearnTest from './VerifiedLearnTest'
 import LearningPractice from './LearningPractice'
 import CurriculumPrimer, { hasPrimer } from './CurriculumPrimer'
@@ -249,6 +250,7 @@ function Desk({ email, profileId, googleIdentity }) {
   const [pathStart, setPathStart] = useState(null)
   const [conceptRows, setConceptRows] = useState([])
   const [detail, setDetail] = useState(null)
+  const [conceptTest,setConceptTest] = useState(null)
   const [test, setTest] = useState(null)
   const [flow, setFlow] = useState(null)
   const [error, setError] = useState('')
@@ -290,6 +292,7 @@ function Desk({ email, profileId, googleIdentity }) {
   }, [catalog, tab, pathStart, detail])
 
   function navigate(stage) {
+    setConceptTest(null)
     setActiveSkill(null)
     setShowCurated(false)
     setEmbeddedPractice(null)
@@ -381,6 +384,7 @@ function Desk({ email, profileId, googleIdentity }) {
     setEmbeddedPractice({ subject, topic: concept ? 'concept:' + concept : '' })
   }
   function openCurated(id) {
+    setConceptTest(null)
     setTab('learn')
     if (extraSkills[id]) {
       setActiveSkill(id)
@@ -396,6 +400,10 @@ function Desk({ email, profileId, googleIdentity }) {
     }
   }
   const dueSkills = Object.keys(curatedTitles).filter(id => curated[id]?.due && (id === 'filipino' || activeIds.has(id) || (extraSkills[id] && (groups.includes(extraSkills[id][0]) || extraSkills[id][0] === 'Filipino'))))
+  function startConceptTest(title,skills) {
+    setConceptTest({title,skills})
+    window.scrollTo(0,0)
+  }
   function startTest(title, testModules) {
     setTest({ title, modules: testModules })
     window.scrollTo(0, 0)
@@ -467,7 +475,10 @@ function Desk({ email, profileId, googleIdentity }) {
         }}>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </div>
       {error && <p role="alert" className="notice error">{error}</p>}
-      {activeSkill ? <>
+      {conceptTest ? <>
+        <button className="quiet back" onClick={() => setConceptTest(null)}>Back to Learn</button>
+        <ConceptTest {...conceptTest} openSkill={openCurated} />
+      </> : activeSkill ? <>
         <button className="quiet back" onClick={() => {setActiveSkill(null);setEmbeddedPractice(null)}}>Back to Learn</button>
         <CuratedSkill onProgress={refreshCurated} key={activeSkill} skill={activeSkill} subject={extraSkills[activeSkill][0]}
           continuePractice={() => openImported(extraSkills[activeSkill][0] === 'Filipino' ? 'Verbal Ability' : extraSkills[activeSkill][0], extraSkills[activeSkill][2])} />
@@ -556,7 +567,7 @@ function Desk({ email, profileId, googleIdentity }) {
         </section>}
         {['today','learn','master'].includes(tab) && <Journey view={tab} profileId={profileId} groups={groups} modules={modules} progress={progress}
           attempts={conceptRows} topicCounts={topicCounts} subjectCounts={subjectCounts} conceptCounts={conceptCounts} states={states} recommendations={recommendations} subject={journeySubject}
-          curated={curated} openCurated={openCurated} startTest={startTest} chooseSubject={chooseJourneySubject} openLearn={() => navigate('learn')} openLesson={openLesson} openPath={openPath}
+          curated={curated} openCurated={openCurated} startTest={startTest} startConceptTest={startConceptTest} chooseSubject={chooseJourneySubject} openLearn={() => navigate('learn')} openLesson={openLesson} openPath={openPath}
           openQuiz={() => navigate('quiz')} openPractice={openImported} />}
         {importedPanel}
         {!modules.length && <div className="surface empty"><h2>Study content is waiting to be imported</h2><p>Ask the study desk owner to finish the private import.</p></div>}

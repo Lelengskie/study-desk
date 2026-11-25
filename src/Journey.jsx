@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { conceptLabel } from './concept-labels.mjs'
 import SubjectIcon from './SubjectIcon'
-import { curriculum, curriculumEntry } from './curriculum.mjs'
+import { curriculum, curriculumEntry, independentlyTestedSkills } from './curriculum.mjs'
 import { rpc } from './api'
 import { analyticalConcepts as analytical, mathPath } from './math-path.mjs'
 import { activeStudyDays, journeyRewards } from './journey-progress.mjs'
@@ -49,7 +49,7 @@ function SubjectProgress({ label, count, total }) {
 }
 
 export default function Journey({
-  view, profileId, groups, modules, progress, attempts, topicCounts, subjectCounts, conceptCounts, states, recommendations, subject, chooseSubject, openLearn, openLesson, openPath, openQuiz, openPractice, curated, openCurated, startTest,
+  view, profileId, groups, modules, progress, attempts, topicCounts, subjectCounts, conceptCounts, states, recommendations, subject, chooseSubject, openLearn, openLesson, openPath, openQuiz, openPractice, curated, openCurated, startTest, startConceptTest,
 }) {
   const goalKey = 'study-desk:weekly-goal:' + profileId
   const [goal, setGoal] = useState(() => {
@@ -121,18 +121,26 @@ export default function Journey({
       </header>
       {lessons.some(module => module.quiz_ids.length) && <button className="primary"
         onClick={() => startTest(subject + ' verified test', lessons)}>Take verified subject test</button>}
+      {entries.filter(item=>independentlyTestedSkills.has(item.id)).length >= 2 && <button className="secondary"
+        onClick={() => startConceptTest(subject + ' · New curriculum test', entries.filter(item=>independentlyTestedSkills.has(item.id)).map(item=>item.id))}>
+        Test newly covered concepts</button>}
       <SubjectProgress label="Curriculum mastery" count={mastered} total={entries.length} />
       <section className="journey-stage">
         <h3>Required curriculum</h3>
         {requiredTopics(subject).map(([topic, items]) => <details key={topic} className="journey-stage" open={items.some(item => item.due)}>
           <summary>{topic} · {items.filter(item => item.mastered).length}/{items.length} mastered</summary>
           <SubjectProgress label={topic + ' mastery'} count={items.filter(item => item.mastered).length} total={items.length} />
+          {items.filter(item=>independentlyTestedSkills.has(item.id)).length >= 2 && <button className="secondary"
+            onClick={() => startConceptTest(topic + ' · New curriculum test',items.filter(item=>independentlyTestedSkills.has(item.id)).map(item=>item.id))}>
+            Test newly covered concepts in {topic}</button>}
           <ol className="journey-steps">{items.map(item => <li key={item.id}>
             <SubjectProgress label={item.title + ' mastery'} count={Number(item.mastered)} total={1} />
             {item.kind === 'pending' ? <small>Mastery assessment pending</small> :
               <button className="secondary" onClick={() => item.kind === 'guided' ? openPath(item.id) : openCurated(item.id)}>
                 {item.due ? 'Review' : 'Study'}<span className="sr-only"> {item.title}</span>
               </button>}
+            {independentlyTestedSkills.has(item.id) && <button className="secondary"
+              onClick={() => startConceptTest(item.title + ' · Concept test',[item.id])}>Test <span className="sr-only">{item.title}</span></button>}
           </li>)}</ol>
         </details>)}
       </section>

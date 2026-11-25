@@ -65,6 +65,14 @@ try {
       id: 'fixture', title: 'Sample mock examination', format: 'pdf', role: 'mock exam',
       editions: ['2027'], drive_file_id: 'fixture-only'
     }])
+    if (path.endsWith('/learn_open_concept_test')) {
+      assert.deepEqual(route.request().postDataJSON().skill_ids,['verbal-context'])
+      return send({id:'sample-test',items:[{skill:'verbal-context',prompt:'The device is portable. What does portable mean?',options:['Easy to move','Fast to recharge']}]})
+    }
+    if (path.endsWith('/learn_grade_concept_test')) {
+      assert.deepEqual(route.request().postDataJSON(),{test_id:'sample-test',selections:{'verbal-context':1}})
+      return send([{skill:'verbal-context',correct:false,correct_choice:0,explanation:'Moving the device is the context clue.'}])
+    }
     if (path.endsWith('/curated_status')) return send([])
     if (path.endsWith('/curated_next')) return send({
       stage:curatedStage,title:'Subject–verb agreement',lesson:'Find the subject of each clause.',
@@ -379,6 +387,18 @@ try {
   await page.getByRole('button',{name:'Submit test'}).click()
   await page.getByText('Add three to the last term.').waitFor()
   assert.equal(gradeCalls,2)
+  await page.getByRole('button',{name:'Learn',exact:true}).click()
+  await page.getByRole('button',{name:'Open Verbal Ability roadmap'}).click()
+  await page.getByText(/^Vocabulary ·/).click()
+  await page.getByRole('button',{name:'Test English context clues',exact:true}).click()
+  await page.getByRole('radio',{name:'Fast to recharge',exact:true}).check()
+  assert.equal(await page.locator('.answer-choice[data-state=correct]').count(),0)
+  await page.getByRole('button',{name:'Submit test'}).click()
+  await page.getByText('Moving the device is the context clue.').waitFor()
+  assert.equal(await page.locator('.answer-choice[data-state=correct]').count(),1)
+  assert.equal(await page.locator('.answer-choice[data-state=incorrect]').count(),1)
+  await page.getByRole('button',{name:'Strengthen English context clues'}).click()
+  await page.getByRole('button',{name:'Back to Learn',exact:true}).waitFor()
   await page.getByRole('button', { name: 'Sign out' }).click()
   await page.getByRole('heading', { name: 'Make time to study.' }).waitFor()
   assert.deepEqual(errors, [])

@@ -12,19 +12,19 @@ export const curriculum = {
     'Numerical reasoning': ['sequence','Mixed numerical reasoning','Timed numerical challenges'],
   },
   'Verbal Ability': {
-    'Vocabulary': ['Vocabulary','Synonyms','@verbal-antonyms','Context clues','Idioms','Word relationships'],
-    'Grammar and usage': ['Parts of speech','@grammar','Verb tenses','@verbal-pronouns','Prepositions','Correct usage'],
+    'Vocabulary': ['Vocabulary','Synonyms','@verbal-antonyms','@verbal-context','Idioms','Word relationships'],
+    'Grammar and usage': ['Parts of speech','@grammar','@verbal-tenses','@verbal-pronouns','Prepositions','Correct usage'],
     'Sentence skills': ['Sentence completion','Sentence correction','Error identification'],
-    'Reading': ['Reading comprehension','@verbal-main-idea','Supporting details','Inference','Paragraph organization'],
+    'Reading': ['Reading comprehension','@verbal-main-idea','@verbal-evidence','Inference','Paragraph organization'],
   },
   'Filipino': {
     'Talasalitaan': ['Talasalitaan','@filipino-synonyms','@filipino-antonyms','@filipino'],
-    'Wika at pagbasa': ['@filipino-usage','Gramatika','Pag-unawa sa binasa','Pagkakaayos ng mga talata'],
+    'Wika at pagbasa': ['@filipino-usage','Gramatika','@filipino-reading','Pagkakaayos ng mga talata'],
   },
   'Analytical Ability': {
-    'Patterns and relationships': ['Classification','Analogies','Number patterns','@analytical-letter-patterns','arrangement'],
+    'Patterns and relationships': ['@analytical-classification','@analytical-analogy','Number patterns','@analytical-letter-patterns','arrangement'],
     'Deductive and inductive reasoning': ['Deductive reasoning','Inductive reasoning','syllogism','venn','Valid conclusions','deductive-counterexample'],
-    'Evaluating arguments': ['@analytical-assumptions','Inferences','Argument evaluation','Evidence'],
+    'Evaluating arguments': ['@analytical-assumptions','Inferences','Argument evaluation','@analytical-evidence'],
     'Interpreting information': ['@data-interpretation','sufficiency','Data interpretation','Mixed multi-step cases','Timed analytical challenges'],
   },
   'General Information': {
@@ -32,12 +32,26 @@ export const curriculum = {
     'Public service and society': ['RA 6713 and public-service ethics','Peace and human rights','Environmental management'],
   },
   'Clerical Ability': {
-    'Filing and indexing': ['@clerical','@clerical-indexing','Secondary filing keys','@clerical-numeric'],
+    'Filing and indexing': ['@clerical','@clerical-indexing','@clerical-secondary','@clerical-numeric'],
     'Accuracy in office work': ['Spelling','@clerical-transcription','Office clerical applications'],
   },
 }
 
+export const independentlyTestedSkills = new Set([
+  'verbal-evidence','verbal-context','verbal-tenses','analytical-analogy','analytical-classification',
+  'analytical-evidence','filipino-reading','clerical-secondary',
+])
+
 export const extraSkills = {
+  'verbal-evidence': ['Verbal Ability','Supporting details','reading'],
+  'verbal-context': ['Verbal Ability','English context clues','context'],
+  'verbal-tenses': ['Verbal Ability','Verb tense and time','grammar'],
+  'analytical-analogy': ['Analytical Ability','Analogies and ordered relationships','analogies'],
+  'analytical-classification': ['Analytical Ability','Classification by a rule','logic'],
+  'analytical-evidence': ['Analytical Ability','Evidence and conclusions','conclusions'],
+  'filipino-reading': ['Filipino','Pag-unawa sa binasa','filipino'],
+  'clerical-secondary': ['Clerical Ability','Secondary filing keys','filing'],
+
   'verbal-antonyms': ['Verbal Ability','Antonyms in context','antonyms'],
   'analytical-letter-patterns': ['Analytical Ability','Letter patterns','letter-patterns'],
   'filipino-usage': ['Filipino','Wastong gamit ng ng at nang','filipino'],
