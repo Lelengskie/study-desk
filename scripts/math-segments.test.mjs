@@ -13,3 +13,10 @@ test('dates, URLs, path-like strings and ordinary slashes remain intact', () => 
   const text = 'Issued on 3/4. See 12/31/2027, 2027/12, and https://example.com/1/2. Use yes/no.'
   assert.deepEqual(mathSegments(text), [{text, math:false}])
 })
+
+test('explicit instruction formats an equation without altering its punctuation', () => {
+  const input = 'Solve for x: 2(x + 4) − 3 = 15.'
+  const pieces = mathSegments(input)
+  assert.deepEqual(pieces.filter(piece=>piece.math).map(piece=>piece.text), ['2(x + 4) − 3 = 15'])
+  assert.equal(pieces.map(piece=>piece.text).join(''),input)
+})

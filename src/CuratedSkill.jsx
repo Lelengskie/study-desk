@@ -1,11 +1,13 @@
+import { AnswerChoices, AnswerFeedback } from './AnswerFeedback'
 import MathText from './MathText'
 import React, { useEffect, useState } from 'react'
 import { rpc } from './api'
 
 const labels = ['Foundation', 'Beginner', 'Intermediate', 'Advanced', 'Examination', 'Retention']
 
-export default function CuratedSkill({ skill, continuePractice, onProgress }) {
+export default function CuratedSkill({ skill, subject, continuePractice, onProgress }) {
   const [item,setItem] = useState(null)
+  const [choice,setChoice] = useState(null)
   const [result,setResult] = useState(null)
   const [round,setRound] = useState(0)
   const [assisted,setAssisted] = useState(false)
@@ -14,7 +16,7 @@ export default function CuratedSkill({ skill, continuePractice, onProgress }) {
   async function load() {
     setBusy(true)
     setError('')
-    try { setItem(await rpc('curated_next',{skill_id:skill})); setResult(null); setAssisted(false); setRound(value => value+1) }
+    try { setItem(await rpc('curated_next',{skill_id:skill})); setResult(null); setChoice(null); setAssisted(false); setRound(value => value+1) }
     catch { setError('The assessment could not load.'); }
     finally { setBusy(false) }
   }
@@ -38,12 +40,25 @@ export default function CuratedSkill({ skill, continuePractice, onProgress }) {
       {waiting && <p>Retention check available {new Date(item.due).toLocaleString()}.</p>}
       {item.stage === 6 && <p>{item.mastered ? 'Skill mastered after an independent retention check.' :
         'Path completed. More independent assessment evidence is needed for mastery.'}</p>}
-      {!waiting && item.options && <fieldset disabled={busy || !!result}>
-        <legend><MathText text={item.prompt} /></legend>
-        {item.options.map((option,index) => <button className="secondary" key={option} onClick={() => answer(index)}><MathText text={option} /></button>)}
-      </fieldset>}
-      {result && <><p role="status"><MathText text={result.feedback} /></p><button className="primary" disabled={busy} onClick={load}>
-        {result.correct ? 'Continue learning' : 'Review and try an easier activity'}</button></>}
+      <div className="question-evidence">
+        {subject && <span>{subject}</span>}
+        <label>Mastery {item.mastered ? 'earned' : 'in progress'}<br/>
+          <progress value={Number(item.mastered)} max="1" /></label>
+        <small>{item.independent_passes ?? 0} independent first answers correct</small>
+      </div>
+      {!waiting && item.options && <>
+        <AnswerChoices name={'skill-'+skill} options={item.options.map((text,id) => ({id,text}))}
+          prompt={<MathText text={item.prompt} />} value={choice} onChange={setChoice}
+          disabled={busy || !!result} correct={result?.correct_choice} />
+        {!result && <button className="primary" disabled={busy || choice === null} onClick={() => answer(choice)}>
+          {item.stage === 5 ? 'Submit retention answer' : 'Check answer'}</button>}
+      </>}
+      {result && <>
+        <AnswerFeedback correct={result.correct} answer={item.options[result.correct_choice]} explanation={result.feedback} />
+        <button className="primary" disabled={busy} onClick={load}>
+          {item.stage === 5 && result.correct ? 'Complete retention review' : result.correct ?
+            'Continue to next activity' : item.stage === 0 || item.stage === 5 ? 'Review the concept' : 'Try an easier activity'}</button>
+      </>}
       {(waiting || item.stage === 6) && <button className="primary" onClick={continuePractice}>Continue with reviewer practice</button>}
     </>}
   </section>

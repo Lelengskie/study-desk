@@ -8,6 +8,15 @@ const dateContext = /\b(?:dated|date|as of|issued on|born on)\s*:?\s*$/i
 
 export function mathSegments(text) {
   if (typeof text !== 'string' || !text) return [{ text, math:false }]
+  const explicit = /^(Calculate|Evaluate|Simplify|Solve for [a-z]:|Find [a-z] if)\s+/i.exec(text)
+  if (explicit) {
+    const end = text.endsWith('.') || text.endsWith('?') ? text.length-1 : text.length
+    const expression = text.slice(explicit[0].length,end)
+    if (calculation.test(expression) && /[=+×÷*^√<>≤≥-]/.test(expression)
+        && !/\d\s*\/\s*\d+\s*\/\s*\d/u.test(expression)) {
+      return [{text:explicit[0],math:false},{text:expression,math:true},{text:text.slice(end),math:false}]
+    }
+  }
   const trimmed = text.trim()
   if (calculation.test(trimmed) && /\d/.test(trimmed) && /[=×÷+<>≤≥%]/.test(trimmed)
       && !/\d\s*\/\s*\d+\s*\/\s*\d/u.test(trimmed)) return [{text, math:true}]

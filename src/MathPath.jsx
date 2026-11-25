@@ -1,3 +1,4 @@
+import { AnswerFeedback } from './AnswerFeedback'
 import React, { useCallback, useEffect, useState } from 'react'
 import MathText from './MathText'
 import { learningBand, nextLearningActivity } from './learning-session.mjs'
@@ -112,6 +113,8 @@ function Variation({ concept, entry, state, sync, refresh, advancesToApplication
   const [variant, next] = useState(() => state.unused[0] ?? firstSeed)
   const [response, change] = useState('')
   const [feedback, show] = useState('')
+  const [graded, setGraded] = useState(null)
+  const [independentPass, setIndependentPass] = useState(false)
   const [revealed, reveal] = useState(0)
   const [busy, setBusy] = useState(false)
   const problem = entry.generate(variant)
@@ -136,30 +139,32 @@ function Variation({ concept, entry, state, sync, refresh, advancesToApplication
         setBusy(false)
       }
     }
-    if (!correct && !revealed) reveal(1)
-    const result = correct ? 'Correct.' : 'Review the concept below, then continue to the worked example.'
-    show(saveFailed ? result + ' Progress could not be saved.' : result)
+    setIndependentPass(correct && revealed === 0 && !saveFailed)
+    setGraded(correct)
+    reveal(problem.steps.length)
+    show(saveFailed ? 'Progress could not be saved.' : '')
   }
 
   return <>
-    <p><MathText text={problem.question} /></p>
+    <p className="answer-prompt"><MathText text={problem.question} /></p>
     <form onSubmit={check}>
-      <fieldset disabled={busy} className="math-input-group">
+      <fieldset disabled={busy || graded !== null} className="math-input-group">
         <PracticeResponse item={{}} math inputLabel="Your calculation" response={response}
           change={value => { change(value); show('') }} />
       </fieldset>
       <div className="actions">
-        <button className="primary" disabled={busy}>Check my calculation</button>
+        <button className="primary" disabled={busy || graded !== null}>Check my calculation</button>
         <button type="button" className="secondary" disabled={busy || revealed >= problem.steps.length}
           onClick={() => reveal(revealed + 1)}>{revealed ? 'Next step' : 'Show hint'}</button>
         <button type="button" className="quiet" disabled={busy} onClick={() => {
-          if (feedback === 'Correct.' && revealed === 0) onAdvance?.()
+          if (independentPass) onAdvance?.()
           next(advanceVariant(variant, state.unused))
-          change(''); show(''); reveal(0)
-        }}>{advancesToApplication && feedback === 'Correct.' && revealed === 0 ? 'Continue learning' : 'Try a new calculation'}</button>
+          change(''); show(''); reveal(0); setGraded(null); setIndependentPass(false)
+        }}>{advancesToApplication && independentPass ? 'Continue learning' : graded === false ? 'Try a similar question' : 'Try a new calculation'}</button>
       </div>
     </form>
-    <p role="status">{feedback}</p>
+    {graded === null ? <p role="status">{feedback}</p> :
+      <AnswerFeedback correct={graded} answer={problem.answer}>{feedback && <p>{feedback}</p>}</AnswerFeedback>}
     {revealed > 0 && <ol>{problem.steps.slice(0, revealed).map(step => <li key={step}><MathText text={step} /></li>)}</ol>}
     {revealed > 0 && concept === 'syllogism' && <div className="logic-groups" aria-label="Groups in the deduction">
       Badge holders

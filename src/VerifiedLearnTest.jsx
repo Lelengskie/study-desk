@@ -1,3 +1,4 @@
+import { AnswerChoices, AnswerFeedback } from './AnswerFeedback'
 import MathText from './MathText'
 import React, { useEffect, useRef, useState } from 'react'
 import { rpc } from './api'
@@ -53,18 +54,12 @@ export default function VerifiedLearnTest({ title, modules, openLesson, finish, 
     {questions.map((question,index) => {
       const result = results?.[index]
       return <section key={question.id}>
-        <fieldset className="options" disabled={busy || !!batch.current}>
-          <legend>{index+1}. <MathText text={question.stem} /></legend>
-          {question.options.map(option => <label className="option" key={option.id}>
-            <input type="radio" name={question.id} checked={choices[question.id] === option.id}
-              onChange={() => setChoices(previous => ({...previous,[question.id]:option.id}))} /><MathText text={option.text} />
-          </label>)}
-        </fieldset>
-        {result && <div className="notice">
-          <strong>{result.correct ? 'Correct' : 'Needs review'}</strong>
-          <p>Correct answer: <MathText text={question.options.find(option => option.id === result.answer_option_id)?.text} /></p>
-          <p><MathText text={result.explanation} /></p>
-        </div>}
+        <AnswerChoices name={question.id} prompt={<>{index+1}. <MathText text={question.stem} /></>}
+          options={question.options} value={choices[question.id]}
+          onChange={choice => setChoices(previous => ({...previous,[question.id]:choice}))}
+          disabled={busy || !!batch.current} correct={result?.answer_option_id} />
+        {result && <AnswerFeedback correct={result.correct} explanation={result.explanation}
+          answer={question.options.find(option => option.id === result.answer_option_id)?.text} />}
       </section>
     })}
     {!!questions.length && !results && <button className="primary" disabled={busy || questions.some(question => !choices[question.id])} onClick={submit}>

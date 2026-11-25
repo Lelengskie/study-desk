@@ -1,3 +1,4 @@
+import { AnswerChoices, AnswerFeedback } from './AnswerFeedback'
 import MathText from './MathText'
 
 import React, { useEffect, useRef, useState } from 'react'
@@ -127,10 +128,7 @@ function TutorPanel({ questionId, original }) {
       {round.status === 'ai' && <p className="muted small">AI walkthroughs can contain mistakes. Use the verified quiz explanation above to check them.</p>}
       <h4><MathText text={round.practice.stem} /></h4>
       <Options options={round.practice.options} value={selected} change={setSelected} name="practice" result={review} disabled={busy} />
-      {review ? <div className="notice" role="status">
-        <strong>{review.correct ? 'Correct' : 'Review this step'}</strong>
-        <p><MathText text={review.explanation} /></p>
-      </div> : <button className="primary" onClick={answer} disabled={!selected || busy}>{busy ? 'Checking…' : 'Check practice answer'}</button>}
+      {review ? <AnswerFeedback correct={review.correct} answer={round.practice.options.find(option => option.id === review.answer_option_id)?.text} explanation={review.explanation} /> : <button className="primary" onClick={answer} disabled={!selected || busy}>{busy ? 'Checking…' : 'Check practice answer'}</button>}
       <button className="quiet" onClick={() => { setRound(null); setError('') }} disabled={busy}>Close practice</button>
     </>}
     {error && <p role="alert" className="notice error">{error}</p>}
@@ -138,19 +136,8 @@ function TutorPanel({ questionId, original }) {
 }
 
 function Options({ options, value, change, name, result, disabled }) {
-  return <fieldset className="options" disabled={Boolean(result) || disabled}>
-    <legend className="sr-only">Choose one answer</legend>
-    {options.map((option, index) => {
-      const right = result?.answer_option_id === option.id
-      const wrong = result && !right && option.id === value
-      return <label key={option.id} className={'option' + (right ? ' right' : wrong ? ' wrong' : value === option.id ? ' selected' : '')}>
-        <input type="radio" name={name} value={option.id} checked={value === option.id} onChange={() => change(option.id)} />
-        <span className="option-letter" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
-        <span><MathText text={option.text} /></span>
-        {right && <span className="mark">Correct answer</span>}
-      </label>
-    })}
-  </fieldset>
+  return <AnswerChoices options={options} value={value} onChange={change} name={name} disabled={disabled || !!result}
+    correct={result?.answer_option_id} />
 }
 
 function QuestionFlow({ ids, mode, title, finish, refresh }) {
@@ -214,14 +201,12 @@ function QuestionFlow({ ids, mode, title, finish, refresh }) {
       <h2 ref={heading} tabIndex={-1} lang={question.language}><MathText text={question.stem} /></h2>
       <Options options={question.options} value={option} change={setOption} name="quiz" result={result} disabled={busy || Boolean(pending.current)} />
       {!result ? <button className="primary" onClick={submit} disabled={!option || busy}>{busy ? 'Saving…' : error ? 'Retry answer' : 'Check answer'}</button> : <>
-        <div className={'notice ' + (result.correct ? 'correct-note' : '')} role="status">
-          <strong>{result.correct ? 'Correct' : 'Here’s how to solve it'}</strong>
-          <p><MathText text={result.explanation} /></p>
+        <AnswerFeedback correct={result.correct} answer={question.options.find(option => option.id === result.answer_option_id)?.text} explanation={result.explanation}>
           <details><summary>Source and verification</summary><p>{result.verification === 'primary_reference_checked' ? 'Checked against a primary reference.' : 'Independently checked.'}</p>
             <ul>{result.sources.map((s, i) => <li key={i}>{s.title} · {s.locator}</li>)}</ul>
           </details>
           <p className="small muted">Next review {dateLabel(result.due_at)}</p>
-        </div>
+        </AnswerFeedback>
         <div className="actions"><button className="primary" onClick={next}>{index + 1 === ids.length ? 'Finish session' : 'Next question'}</button></div>
         <TutorPanel key={id} questionId={id} original={result.explanation} />
       </>}
@@ -438,7 +423,7 @@ function Desk({ email, profileId }) {
         conceptCounts={conceptCounts} />
     : embeddedPractice.topic === 'concept:filipino'
       ? <div key={track + 'filipino'}>
-          {showCurated && <CuratedSkill onProgress={refreshCurated} key="filipino" skill="filipino" continuePractice={() => {setShowCurated(false); setAdaptiveLesson(true)}} />}
+          {showCurated && <CuratedSkill onProgress={refreshCurated} key="filipino" skill="filipino" subject="Filipino" continuePractice={() => {setShowCurated(false); setAdaptiveLesson(true)}} />}
           {adaptiveLesson && <LearningPractice track={track} subject="Verbal Ability"
             topics={['concept:filipino']} onFinish={() => setAdaptiveLesson(false)} />}
         </div>
@@ -467,7 +452,7 @@ function Desk({ email, profileId }) {
       {error && <p role="alert" className="notice error">{error}</p>}
       {activeSkill ? <>
         <button className="quiet back" onClick={() => {setActiveSkill(null);setEmbeddedPractice(null)}}>Back to Learn</button>
-        <CuratedSkill onProgress={refreshCurated} key={activeSkill} skill={activeSkill}
+        <CuratedSkill onProgress={refreshCurated} key={activeSkill} skill={activeSkill} subject={extraSkills[activeSkill][0]}
           continuePractice={() => openImported(extraSkills[activeSkill][0] === 'Filipino' ? 'Verbal Ability' : extraSkills[activeSkill][0], extraSkills[activeSkill][2])} />
         {activeSkill === 'government-branches' && <p><a href="https://officialgazette.gov.ph/constitutions/1987-constitution/"
           target="_blank" rel="noreferrer">Read Articles VI–VIII in the Official Gazette</a></p>}
@@ -508,7 +493,7 @@ function Desk({ email, profileId }) {
             </li>)}</ul>
           </details>}
         </article>
-        {showCurated && <CuratedSkill onProgress={refreshCurated} key={detail.id} skill={detail.id}
+        {showCurated && <CuratedSkill onProgress={refreshCurated} key={detail.id} skill={detail.id} subject={detail.track}
           continuePractice={() => {setShowCurated(false); continueLesson(detail)}} />}
         {!showCurated && !assessedSkills.has(detail.id) && !adaptiveLesson && hasPrimer(detail.id) && <CurriculumPrimer key={detail.id}
           concept={detail.id} onReady={() => continueLesson(detail)} />}

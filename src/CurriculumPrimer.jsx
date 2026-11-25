@@ -1,3 +1,5 @@
+import { AnswerChoices, AnswerFeedback } from './AnswerFeedback'
+import MathText from './MathText'
 import React, { useState } from 'react'
 
 const material = {
@@ -69,6 +71,7 @@ const material = {
 
 export default function CurriculumPrimer({ concept, onReady }) {
   const [answer, setAnswer] = useState(null)
+  const [checked, setChecked] = useState(false)
   const entry = material[concept]
   if (!entry) return null
   const options = ['logic','constitution'].includes(concept) ? entry.options : [...entry.options].reverse()
@@ -77,12 +80,13 @@ export default function CurriculumPrimer({ concept, onReady }) {
     <h2>Understand the concept</h2><p>{entry.lesson}</p>
     <details className="concept-worked"><summary>Read a worked example</summary><p>{entry.example}</p></details>
     {entry.source && <p><a href={entry.source} target="_blank" rel="noreferrer">Read the 1987 Constitution</a></p>}
-    <fieldset><legend>{entry.question}</legend>
-      {options.map(option => <button type="button" className="secondary" key={option}
-        aria-pressed={answer === option} onClick={() => setAnswer(option)}>{option}</button>)}
-    </fieldset>
-    {answer && <p role="status">{correct ? entry.reason : 'Read the worked example, then try again. ' + entry.reason}</p>}
-    {correct && <button className="primary" onClick={onReady}>Continue learning</button>}
+    <AnswerChoices name={'primer-'+concept} options={options.map(text=>({id:text,text}))}
+      value={answer} onChange={setAnswer} prompt={<MathText text={entry.question} />}
+      correct={checked ? entry.options[0] : undefined} />
+    {!checked && <button className="primary" disabled={!answer} onClick={() => setChecked(true)}>Check answer</button>}
+    {checked && <AnswerFeedback correct={correct} answer={entry.options[0]} explanation={entry.reason} />}
+    {checked && !correct && <button className="secondary" onClick={() => {setAnswer(null);setChecked(false)}}>Review the concept</button>}
+    {checked && correct && <button className="primary" onClick={onReady}>Continue learning</button>}
   </section>
 }
 export const hasPrimer = concept => Object.hasOwn(material, concept)

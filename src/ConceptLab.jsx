@@ -1,3 +1,4 @@
+import { AnswerFeedback } from './AnswerFeedback'
 import MathText from './MathText'
 import React, { useState } from 'react'
 import { equivalentNumber } from './practice-response.mjs'
@@ -145,7 +146,8 @@ function Exercise({ lesson }) {
         }}>Try different values</button>
       </div>
     </form>
-    {checked && <p role="status">{correct ? 'Correct.' : 'Try again or use the hint.'}</p>}
+    {checked && <AnswerFeedback correct={correct} answer={String(answer)}
+      explanation={lesson.explanation(value, total, answer)} />}
     {help === 1 && <p role="status"><MathText text={lesson.hint} /></p>}
     {help === 2 && <div className="concept-worked">
       {steps && <label>Explanation depth <select value={depth} onChange={event => {
